@@ -50,7 +50,7 @@ void startReadingBatteryLevel(nrf_saadc_value_t* buffer)
 
 nrf_saadc_value_t BatteryLevel = { 0 };
 
-float vBat = 0.0;
+float vBat = 4.5;
 
 float get_battery(void){
   return vBat;
@@ -66,8 +66,6 @@ void monitor_battery_level(void){
     // read battery level every 1 second
     startReadingBatteryLevel(&BatteryLevel);
     _lastT = _t;
-    Serial.print("startReadingBatteryLevel at time ");
-    Serial.println(_t);
   }
 
   // check if ADC conversion has completed
@@ -75,11 +73,9 @@ void monitor_battery_level(void){
   {
     // ADC conversion completed. Reading is stored in BatteryLevel
     nrf_saadc_event_clear(NRF_SAADC_EVENT_DONE);
-     vBat = (float)BatteryLevel / 4096 * 3.3 / 510 * (1000 + 510);
+     vBat = vBat * .9 + 0.1 * (float)BatteryLevel / 4096 * 3.3 / 510 * (1000 + 510);
     // write value to characteristic or things you want to do
     
-    Serial.print("BatteryLevel: ");
-    Serial.println(vBat);
   }
 }
 
@@ -88,7 +84,7 @@ void battery_init(void){
   pinMode(P0_14, OUTPUT);
   digitalWrite(P0_14,LOW);
   
-  while(vBat == 0.0){
+  while(vBat == 4.5){
     monitor_battery_level();
   }
 }
