@@ -39,26 +39,9 @@ FusionAhrs ahrs;
 #define MAX_PRPH_CONNECTION   2
 uint8_t connection_count = 0;
 
-/* Nordic Led-Button Service (LBS)
-   LBS Service: 19B10000-E8F2-537E-4F6C-D104768A1214
-   LBS LEFT :   19B10001-E8F2-537E-4F6C-D104768A1214
-   LBS RIGHT    19B10001-E8F2-537E-4F6C-D104768A1215
-*/
-
-const uint8_t LBS_UUID_SERVICE[] =
-{
-  0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x00, 0x00, 0xB1, 0x19
-};
-
-const uint8_t LBS_UUID_CHR_LEFT[] =
-{
-  0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19
-};
-
-const uint8_t LBS_UUID_CHR_RIGHT[] =
-{
-  0x15, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19
-};
+const uint8_t LBS_UUID_SERVICE[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x00, 0x00, 0xB1, 0x19 };
+const uint8_t LBS_UUID_CHR_LEFT[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
+const uint8_t LBS_UUID_CHR_RIGHT[] = { 0x15, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
 
 BLEService        lbs(LBS_UUID_SERVICE);
 BLECharacteristic lsbLEFT(LBS_UUID_CHR_LEFT);
@@ -112,10 +95,10 @@ void setup()
 
   digitalWrite(LED_RED, HIGH);
   digitalWrite(LED_GREEN, HIGH);
-  
+
   Serial.begin(115200);
   Serial1.begin(115200);
-  while ( !Serial ) delay(10);   // for nrf52840 with native usb
+  //while ( !Serial ) delay(10);   // for nrf52840 with native usb
 
 
   FusionAhrsInitialise(&ahrs);
@@ -241,32 +224,22 @@ void startAdv(void)
   Bluefruit.Advertising.start(0);                // 0 = Don't stop advertising after n seconds
 }
 
-void lsbLEFT_write_callback(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len)
-{
-  (void) conn_hdl;
-  (void) chr;
-  (void) len; // len should be 1
+void lsbLEFT_write_callback(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len) {
   if (len == 15) {
     cpu_left.msg_time = millis();
     cpu_left.fps++;
     payload_to_struct(&cpu_left, data);
     digitalWrite(LED_RED, cpu_left.msg_count & 0x01);
   }
-
 }
 
-void lsbRIGHT_write_callback(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len)
-{
-  (void) conn_hdl;
-  (void) chr;
-  (void) len; // len should be 1
+void lsbRIGHT_write_callback(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len) {
   if (len == 15) {
     cpu_right.msg_time = millis();
     cpu_right.fps++;
     payload_to_struct(&cpu_right, data);
     digitalWrite(LED_GREEN, cpu_right.msg_count & 0x01);
   }
-
 }
 
 void loop()
@@ -276,7 +249,6 @@ void loop()
     imu_time = millis();
     update_imu();  //4 to 9 ms
   }
-
 
 
   static uint32_t led_time = 0;
@@ -300,10 +272,6 @@ void loop()
   if (millis() - last_time > 1000) {
     last_time = millis();
 
-    if (Serial.available()) {
-
-
-    }
 
     Serial.print(cpu_head.fps);
     Serial.print(" ");
@@ -319,22 +287,20 @@ void loop()
   cpu_head.fps++;
 }
 
-// callback invoked when central connects
-void connect_callback(uint16_t conn_handle) {
-  (void) conn_handle;
-
-
-
-  connection_count++;
+void connect_check(void) {
   Serial.print("Connection count: ");
   Serial.println(connection_count);
-
-  // Keep advertising if not reaching max
-  if (connection_count < MAX_PRPH_CONNECTION)
-  {
+  if (connection_count < MAX_PRPH_CONNECTION)  {
     Serial.println("Keep advertising");
     Bluefruit.Advertising.start(0);
   }
+}
+
+// callback invoked when central connects
+void connect_callback(uint16_t conn_handle) {
+  Serial.println("Device Connected");
+  connection_count++;
+  connect_check();
 }
 
 /**
@@ -343,11 +309,7 @@ void connect_callback(uint16_t conn_handle) {
    @param reason is a BLE_HCI_STATUS_CODE which can be found in ble_hci.h
 */
 void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
-  (void) conn_handle;
-  (void) reason;
-
-  Serial.println();
-  Serial.print("Disconnected, reason = 0x"); Serial.println(reason, HEX);
-
+  Serial.println("Device Disconnected, reason = 0x"); Serial.println(reason, HEX);
   connection_count--;
+  connect_check();
 }
