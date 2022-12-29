@@ -46,8 +46,9 @@
 #include "Adafruit_NeoPixel.h"
 
 #include "nrf.h"
-#include <pinDefinitions.h>
-
+#if defined(ARDUINO_ARCH_NRF52840)
+   #include <pinDefinitions.h>
+#endif
 uint16_t *pixels_pattern = NULL;
 NRF_PWM_Type *pwm = NULL;
 uint32_t pattern_size;
@@ -239,7 +240,11 @@ void Adafruit_NeoPixel::begin(void) {
     //    pwm->INTEN |= (PWM_INTEN_SEQEND0_Enabled<<PWM_INTEN_SEQEND0_Pos);
 
 // PSEL must be configured before enabling PWM
+#if defined(ARDUINO_ARCH_NRF52840)
     pwm->PSEL.OUT[0] = g_APinDescription[pin].name;
+#else
+    pwm->PSEL.OUT[0] = g_ADigitalPinMap[pin];
+#endif
 
     // Enable the PWM
     pwm->ENABLE = 1;
