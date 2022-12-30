@@ -1,38 +1,23 @@
 #include <bluefruit.h>
-#include "LSM6DS3.h"
-#include "Wire.h"
-#include "Fusion.h"
-#include <arduinoFFT.h>
-#include <PDM.h>
+#include "common.h"
+#include "imu.h"
+#include "sound.h"
+#include "vibe.h"
 
-const uint8_t LBS_UUID_SERVICE[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x00, 0x00, 0xB1, 0x19 };
-const uint8_t LBS_UUID_CHR_LEFT[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
+const uint8_t   LBS_UUID_SERVICE[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x00, 0x00, 0xB1, 0x19 };
+const uint8_t  LBS_UUID_CHR_LEFT[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
 const uint8_t LBS_UUID_CHR_RIGHT[] = { 0x15, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
 
 BLEClientService        hand_service(LBS_UUID_SERVICE);
 BLEClientCharacteristic hand_characteristic;
 
-//add autohand detection via pins
-//add battery level low blue blinking
+struct cpu_struct hand_data = { 0 };
+
 //add vibration feedback
 
 bool hand = true;  //true = left & red  false = right and green
 int hand_led_pin = 0;
-
 float battery_voltage = 4.2;
-
-// sound globals
-#define FFT_SAMPLES 16
-uint8_t fft_scaled_255[FFT_SAMPLES / 2] = { 0 };
-volatile bool pdm_processed = true;
-
-// imu globals
-FusionEuler euler;
-LSM6DS3 myIMU(I2C_MODE, 0x6A);
-FusionAhrs ahrs;
-uint8_t stepCount = 0;
-int tap_event_count = 0;
-int tap_event_last = 0;
 
 void cent_connect_callback(uint16_t conn_handle) {
   BLEConnection* connection = Bluefruit.Connection(conn_handle);
@@ -67,6 +52,9 @@ void cent_disconnect_callback(uint16_t conn_handle, uint8_t reason) {
 }
 
 void setup() {
+  
+  analogReference(AR_INTERNAL_2_4);  //Vref=2.4V
+  analogReadResolution(12);          //12bits
 
   //enable battery measuring
   pinMode(VBAT_ENABLE, OUTPUT);
@@ -76,20 +64,18 @@ void setup() {
   pinMode(PIN_VBAT, INPUT);
 
   //set battery charge speed to 100mA
-  pinMode(13, OUTPUT);
-  digitalWrite(13, LOW);
-
-  // analogRead(PIN_VBAT);
+  pinMode(22 , OUTPUT);
+  digitalWrite(22 , LOW);
 
   Serial.begin(115200);
 
+  vibe_init();
   imu_init();
   sound_init();
 
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
-
-  //blue led is handled directly by bluefruit
+  pinMode(LED_BLUE, OUTPUT);
 
   if (hand) {
     hand_led_pin = LED_RED;
@@ -99,9 +85,9 @@ void setup() {
     hand_characteristic = BLEClientCharacteristic(LBS_UUID_CHR_RIGHT);
   }
 
- 
   // Initialize Bluefruit with maximum connections as Peripheral = 0, Central = 1
   Bluefruit.begin(0, 1);
+  Bluefruit.autoConnLed(false); // don't let bluefruit have the blue led
   Bluefruit.setTxPower(4);    // keep it loud
   Bluefruit.setName("Bluefruit52");
   hand_service.begin();
@@ -124,13 +110,13 @@ void setup() {
 
 
 bool update_mic_and_imu(void) {
-  imu_isr_check();
+  //read voltage measure 0.03 v low (experimentally)
 
-  double vBat = ((analogRead(PIN_VBAT) * 3.3) / 1024) * 1510.0 / 510.0; // Voltage divider from Vbat to ADC
+  double vBat = ((((float)analogRead(PIN_VBAT)) * 2.4) / 4096.0) * 1510.0 / 510.0; // Voltage divider from Vbat to ADC
   battery_voltage = battery_voltage * 0.95 + 0.05 * vBat;
 
-  if (update_mic()) {  // updates at 20hz set by sample rate and buffer size
-    update_imu();      //update the IMU at the same cadence as the microphone
+  if (sound_update(&hand_data)) {  // updates at 20hz set by sample rate and buffer size
+    imu_update(&hand_data);      //update the IMU at the same cadence as the microphone
     return true;
   }
   return false;
@@ -159,54 +145,75 @@ void scan_callback(ble_gap_evt_adv_report_t* report) {
 
 
 void loop() {
-  static uint8_t payload[15] = { 0 };
-  static int fps = 0;
-  static int total_time = 0;
-  uint32_t start_it = micros();
+  static int loop_time_total = 0;
+  uint32_t loop_start_time = micros();
 
-  if (Bluefruit.Central.connected() && update_mic_and_imu()) {
+  if (update_mic_and_imu()) {
 
-    payload[14] = tap_event_last;
-    payload[13] = tap_event_count;
-    payload[12] = stepCount;
-    payload[11] = constrain(map(euler.angle.yaw + 180, 0, 360, 0, 256), 0, 255);
-    payload[10] = constrain(map(euler.angle.pitch + 180, 0, 360, 0, 256), 0, 255);
-    payload[9] = constrain(map(euler.angle.roll + 180, 0, 360, 0, 256), 0, 255);
-    payload[8] = fft_scaled_255[7];
-    payload[7] = fft_scaled_255[6];
-    payload[6] = fft_scaled_255[5];
-    payload[5] = fft_scaled_255[4];
-    payload[4] = fft_scaled_255[3];
-    payload[3] = fft_scaled_255[2];
-    payload[2] = fft_scaled_255[1];
-    payload[1] = fft_scaled_255[0];
-    payload[0]++;
+    if (Bluefruit.Central.connected()) {
+      uint8_t payload[15] = { 0 };
 
-    hand_characteristic.write(payload, 15);
+      payload[14] = hand_data.tap_event;
+      payload[13] = hand_data.tap_event_counter;
+      payload[12] = hand_data.step_count;
 
-    fps++;
-    total_time += micros() - start_it;
+      payload[11] = hand_data.yaw;
+      payload[10] = hand_data.pitch;
+      payload[9] = hand_data.roll;
+
+      payload[8] = hand_data.fft[7];
+      payload[7] = hand_data.fft[6];
+      payload[6] = hand_data.fft[5];
+      payload[5] = hand_data.fft[4];
+      payload[4] = hand_data.fft[3];
+      payload[3] = hand_data.fft[2];
+      payload[2] = hand_data.fft[1];
+      payload[1] = hand_data.fft[0];
+      payload[0] = hand_data.msg_count++;
+
+      hand_characteristic.write(payload, 15);
+      digitalWrite(hand_led_pin, hand_data.msg_count & 0x01);
+
+      //battery empty indicator when connected
+      if (battery_voltage < 3.6) {
+        digitalWrite(LED_BLUE, !(hand_data.msg_count & 0x01));
+      } else {
+        digitalWrite(LED_BLUE, HIGH);
+      }
+
+    } else {
+
+      //battery full indicator when disconnected
+      if (battery_voltage > 4.0) {
+        digitalWrite(LED_BLUE, !(millis() >> 8 & 0x01));
+      } else {
+        digitalWrite(LED_BLUE, HIGH);
+      }
+      digitalWrite(hand_led_pin, millis() >> 8 & 0x01);
+
+    }
+    hand_data.fps++;
+    loop_time_total += micros() - loop_start_time;
   }
-
-  // LED update
-  if (Bluefruit.Central.connected()) {
-    digitalWrite(hand_led_pin, payload[0] & 0x01);
-  } else {
-    digitalWrite(hand_led_pin, millis() >> 8 & 0x01);
+  static int tap_event_counter_last = 0 ;
+  if (hand_data.tap_event_counter != tap_event_counter_last){
+    tap_event_counter_last = hand_data.tap_event_counter;
+    vibe_add_quick_slow(hand_data.tap_event,0);
   }
-
-  static uint32_t last_time = 0;
-  if (millis() - last_time > 1000) {
-    last_time += 1000;
-    if (millis() - last_time > 1000)
-      last_time = millis();
+  vibe_update();
+  
+  static uint32_t fps_time = 0;
+  if (millis() - fps_time > 1000) {
+    fps_time += 1000;
+    if (millis() - fps_time > 1000)
+      fps_time = millis();
     Serial.print("\t");
     Serial.print(battery_voltage);
     Serial.print("\t");
-    Serial.print(total_time / 10000);
+    Serial.print(loop_time_total / 10000);
     Serial.print("% Load \tFPS:");
-    Serial.println(fps);
-    fps = 0;
-    total_time = 0;
+    Serial.println(hand_data.fps);
+    hand_data.fps = 0;
+    loop_time_total = 0;
   }
 }
