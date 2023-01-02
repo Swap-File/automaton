@@ -1,39 +1,17 @@
 #include <bluefruit.h>
 #include <Adafruit_NeoPixel.h>
-#include "LSM6DS3.h"
-#include "Fusion.h"
+#include <Metro.h>
 
-struct cpu_struct {
-  uint8_t fft[8];
+#include "common.h"
+#include "imu.h"
 
-  uint8_t yaw;
-  uint8_t pitch;
-  uint8_t roll;
-
-  uint8_t step_count;
-
-  uint8_t tap_event;
-  uint8_t tap_event_counter;
-
-  uint32_t msg_time;
-  uint8_t msg_count;
-
-  int fps;
-
-  bool connected;
-};
-
-
+Metro notify_timer = Metro(50);
 
 struct cpu_struct cpu_left = { 0 };
 struct cpu_struct cpu_right = { 0 };
 struct cpu_struct cpu_head = { 0 };
 
 uint8_t wing_data[60] = { 0 };
-
-FusionAhrs ahrs;
-#define IMU_SAMPLE_RATE (0.01f)  //lie about sample rate for nice filtering
-
 
 // max concurrent connections supported by this example
 #define MAX_PRPH_CONNECTION   2
@@ -42,138 +20,14 @@ uint8_t connection_count = 0;
 const uint8_t LBS_UUID_SERVICE[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x00, 0x00, 0xB1, 0x19 };
 const uint8_t LBS_UUID_CHR_LEFT[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
 const uint8_t LBS_UUID_CHR_RIGHT[] = { 0x15, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
+const uint8_t LBS_UUID_CHR_VIBE[] = { 0x16, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
 
 BLEService        lbs(LBS_UUID_SERVICE);
 BLECharacteristic lsbLEFT(LBS_UUID_CHR_LEFT);
 BLECharacteristic lsbRIGHT(LBS_UUID_CHR_RIGHT);
+BLECharacteristic lsbVIBE(LBS_UUID_CHR_VIBE);
 
 Adafruit_NeoPixel pixels(60, D2, NEO_GRB + NEO_KHZ800);  //60 safe load
-
-
-#define int1Pin PIN_LSM6DS3TR_C_INT1
-
-volatile static uint32_t last_tap_time = 0;
-volatile uint8_t interruptCount = 0;
-
-
-LSM6DS3 myIMU(I2C_MODE, 0x6A);
-
-void int1ISR() {
-  uint32_t tap_time = millis();
-  if (tap_time - last_tap_time < 100) {  // too soon
-    return;
-  }
-  interruptCount++;
-  last_tap_time = tap_time;
-}
-
-inline void update_imu(void) {
-
-  const FusionVector gyroscope = { myIMU.readFloatGyroX(), myIMU.readFloatGyroY(), myIMU.readFloatGyroZ() };         // replace this with actual gyroscope data in degrees/s
-  const FusionVector accelerometer = { myIMU.readFloatAccelX(), myIMU.readFloatAccelY(), myIMU.readFloatAccelZ() };  // replace this with actual accelerometer data in g
-  FusionAhrsUpdateNoMagnetometer(&ahrs, gyroscope, accelerometer, IMU_SAMPLE_RATE);
-  FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
-
-  cpu_head.yaw = (uint8_t)constrain(map(euler.angle.yaw + 180, 0, 360, 0, 256), 0, 255);
-  cpu_head.pitch = (uint8_t)constrain(map(euler.angle.pitch + 180, 0, 360, 0, 256), 0, 255);
-  cpu_head.roll = (uint8_t)constrain(map(euler.angle.roll + 180, 0, 360, 0, 256), 0, 255);
-
-  myIMU.readRegister(&(cpu_head.step_count), LSM6DS3_ACC_GYRO_STEP_COUNTER_L);
-
-  if (interruptCount > 0 && millis() - last_tap_time > 500) {
-    cpu_head.tap_event_counter++;
-    cpu_head.tap_event = interruptCount;
-    interruptCount = 0;
-  }
-}
-
-
-void setup()
-{
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
-
-  digitalWrite(LED_RED, HIGH);
-  digitalWrite(LED_GREEN, HIGH);
-
-  Serial.begin(115200);
-  Serial1.begin(115200);
-  //while ( !Serial ) delay(10);   // for nrf52840 with native usb
-
-
-  FusionAhrsInitialise(&ahrs);
-
-  // Set AHRS algorithm settings
-  const FusionAhrsSettings settings = {
-    .gain = 0.5f,
-    .accelerationRejection = 10.0f,
-    .magneticRejection = 0.0f,
-    .rejectionTimeout = 5,
-  };
-  FusionAhrsSetSettings(&ahrs, &settings);
-
-
-  if (myIMU.begin() != 0) {
-    Serial.println("myIMU error");
-  } else {
-    Serial.println("myIMU OK!");
-  }
-
-  pinMode(int1Pin, INPUT);
-  attachInterrupt(digitalPinToInterrupt(int1Pin), int1ISR, RISING);
-
-  myIMU.writeRegister(LSM6DS3_ACC_GYRO_TAP_CFG1, 0x8E);    // INTERRUPTS_ENABLE, SLOPE_FDS
-  myIMU.writeRegister(LSM6DS3_ACC_GYRO_CTRL10_C, 0x3C);    //enable pedometer
-  myIMU.writeRegister(LSM6DS3_ACC_GYRO_TAP_THS_6D, 0x8C);  //tap threshold
-  //myIMU.writeRegister(LSM6DS3_ACC_GYRO_INT_DUR2, 0x7F); //tap duraction
-  myIMU.writeRegister(LSM6DS3_ACC_GYRO_MD1_CFG, 0b01000000);  //single tap route to int
-
-
-
-  Serial.println("Bluefruit52 nRF Blinky Example");
-  Serial.println("------------------------------\n");
-
-  // Initialize Bluefruit with max concurrent connections as Peripheral = MAX_PRPH_CONNECTION, Central = 0
-  Serial.println("Initialise the Bluefruit nRF52 module");
-  Bluefruit.begin(MAX_PRPH_CONNECTION, 0);
-  Bluefruit.Periph.setConnectCallback(connect_callback);
-  Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
-
-  // Setup the LED-Button service using
-  Serial.println("Configuring the LED-Button Service");
-
-  // Note: You must call .begin() on the BLEService before calling .begin() on
-  // any characteristic(s) within that service definition.. Calling .begin() on
-  // a BLECharacteristic will cause it to be added to the last BLEService that
-  // was 'begin()'ed!
-  lbs.begin();
-
-  // Configure Button characteristic
-  // Properties = Read + Notify
-  // Permission = Open to read, cannot write
-  // Fixed Len  = 1 (button state)
-  lsbLEFT.setProperties( CHR_PROPS_WRITE);
-  lsbLEFT.setPermission(SECMODE_OPEN, SECMODE_OPEN );
-  lsbLEFT.setFixedLen(15);
-  lsbLEFT.begin();
-  lsbLEFT.setWriteCallback(lsbLEFT_write_callback);
-
-  // Configure the LED characteristic
-  // Properties = Read + Write
-  // Permission = Open to read, Open to write
-  // Fixed Len  = 1 (LED state)
-  lsbRIGHT.setProperties( CHR_PROPS_WRITE);
-  lsbRIGHT.setPermission(SECMODE_OPEN, SECMODE_OPEN);
-  lsbRIGHT.setFixedLen(15);
-  lsbRIGHT.begin();
-  lsbRIGHT.setWriteCallback(lsbRIGHT_write_callback);
-
-  // Setup the advertising packet(s)
-  Serial.println("Setting up the advertising");
-  startAdv();
-
-  pixels.begin();
-}
 
 void payload_to_struct(struct cpu_struct *cpu, const uint8_t *payload) {
 
@@ -197,6 +51,51 @@ void payload_to_struct(struct cpu_struct *cpu, const uint8_t *payload) {
 
   cpu->msg_count = payload[0];
 }
+void setup()
+{
+  pinMode(LED_RED, OUTPUT);
+  pinMode(LED_GREEN, OUTPUT);
+
+  digitalWrite(LED_RED, HIGH);
+  digitalWrite(LED_GREEN, HIGH);
+
+  Serial.begin(115200);
+  Serial1.begin(115200);
+  // while ( !Serial ) delay(10);   // for nrf52840 with native usb
+
+  imu_init();
+
+  // Initialize Bluefruit with max concurrent connections as Peripheral = MAX_PRPH_CONNECTION, Central = 0
+  Serial.println("Initialise the Bluefruit nRF52 module");
+  Bluefruit.begin(MAX_PRPH_CONNECTION, 0);
+  Bluefruit.Periph.setConnectCallback(connect_callback);
+  Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
+
+  lbs.begin();
+
+  lsbLEFT.setProperties( CHR_PROPS_WRITE_WO_RESP );
+  lsbLEFT.setPermission(SECMODE_OPEN, SECMODE_OPEN );
+  lsbLEFT.setFixedLen(15);
+  lsbLEFT.begin();
+  lsbLEFT.setWriteCallback(lsbLEFT_write_callback);
+
+  lsbRIGHT.setProperties( CHR_PROPS_WRITE_WO_RESP  );
+  lsbRIGHT.setPermission(SECMODE_OPEN, SECMODE_OPEN);
+  lsbRIGHT.setFixedLen(15);
+  lsbRIGHT.begin();
+  lsbRIGHT.setWriteCallback(lsbRIGHT_write_callback);
+
+  lsbVIBE.setProperties( CHR_PROPS_NOTIFY  );
+  lsbVIBE.setPermission(SECMODE_OPEN, SECMODE_OPEN);
+  lsbVIBE.setFixedLen(1);
+  lsbVIBE.begin();
+
+  Serial.println("Setting up the advertising");
+  startAdv();
+
+  pixels.begin();
+}
+
 
 void startAdv(void)
 {
@@ -209,15 +108,6 @@ void startAdv(void)
 
   Bluefruit.setName("AUTOMATON");
   Bluefruit.ScanResponse.addName();
-  /* Start Advertising
-     - Enable auto advertising if disconnected
-     - Interval:  fast mode = 20 ms, slow mode = 152.5 ms
-     - Timeout for fast mode is 30 seconds
-     - Start(timeout) with timeout = 0 will advertise forever (until connected)
-
-     For recommended advertising interval
-     https://developer.apple.com/library/content/qa/qa1931/_index.html
-  */
   Bluefruit.Advertising.restartOnDisconnect(true);
   Bluefruit.Advertising.setInterval(32, 244);    // in unit of 0.625 ms
   Bluefruit.Advertising.setFastTimeout(30);      // number of seconds in fast mode
@@ -247,7 +137,7 @@ void loop()
   static uint32_t imu_time = 0;  // 20fps to match wrists
   if (millis() - imu_time > 50) {
     imu_time = millis();
-    update_imu();  //4 to 9 ms
+    imu_update(&cpu_head);  //4 to 9 ms
   }
 
 
@@ -267,6 +157,7 @@ void loop()
     led_time = millis();
   }
 
+  static uint8_t vibe = 0x0F;
   //STATS
   static uint32_t last_time = 0;
   if (millis() - last_time > 1000) {
@@ -279,13 +170,53 @@ void loop()
     Serial.print(" ");
     Serial.println(cpu_right.fps);
 
+    static int left_tap_event_counter = 0;
+    static int right_tap_event_counter = 0;
+
+    if (cpu_left.vibe)
+      cpu_left.vibe = false;
+
+    if (cpu_right.vibe)
+      cpu_right.vibe = false;
+
+    if (left_tap_event_counter != cpu_left.tap_event_counter) {
+      cpu_left.vibe = true;
+      left_tap_event_counter = cpu_left.tap_event_counter;
+    }
+
+    if (right_tap_event_counter != cpu_right.tap_event_counter) {
+      cpu_right.vibe = true;
+      right_tap_event_counter = cpu_right.tap_event_counter;
+    }
+
     cpu_left.fps = 0;
     cpu_right.fps = 0;
     cpu_head.fps = 0;
   }
 
   cpu_head.fps++;
+
+  if (notify_timer.check()) {  // 100hz
+
+    static bool alternate = false; // interleaved for 50hz each
+    uint8_t data = 0x00;
+
+    if (cpu_left.vibe && cpu_right.vibe)
+      data = 0xFF;
+    else if (cpu_right.vibe)
+      data = 0x0F;
+    else if (cpu_left.vibe)
+      data = 0xF0;
+      
+    if (alternate) {
+      lsbVIBE.notify8(0, data);
+    } else {
+      lsbVIBE.notify8(1, data);
+    }
+    alternate = !alternate;
+  }
 }
+
 
 void connect_check(void) {
   Serial.print("Connection count: ");
@@ -296,18 +227,13 @@ void connect_check(void) {
   }
 }
 
-// callback invoked when central connects
 void connect_callback(uint16_t conn_handle) {
+  Serial.println(conn_handle);
   Serial.println("Device Connected");
   connection_count++;
   connect_check();
 }
 
-/**
-   Callback invoked when a connection is dropped
-   @param conn_handle connection where this event happens
-   @param reason is a BLE_HCI_STATUS_CODE which can be found in ble_hci.h
-*/
 void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   Serial.println("Device Disconnected, reason = 0x"); Serial.println(reason, HEX);
   connection_count--;

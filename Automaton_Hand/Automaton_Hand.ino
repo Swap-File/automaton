@@ -1,23 +1,45 @@
 #include <bluefruit.h>
+#include <Metro.h>
 #include "common.h"
 #include "imu.h"
 #include "sound.h"
-#include "vibe.h"
 
 const uint8_t   LBS_UUID_SERVICE[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x00, 0x00, 0xB1, 0x19 };
 const uint8_t  LBS_UUID_CHR_LEFT[] = { 0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
 const uint8_t LBS_UUID_CHR_RIGHT[] = { 0x15, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
+const uint8_t LBS_UUID_CHR_VIBE[] = { 0x16, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6C, 0x4F, 0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19 };
 
-BLEClientService        hand_service(LBS_UUID_SERVICE);
-BLEClientCharacteristic hand_characteristic;
+Metro fps_timer = Metro(1000);
+Metro imu_timer = Metro(10);
+
+BLEClientService  hand_service(LBS_UUID_SERVICE);
+BLEClientCharacteristic  hand_characteristic;
+BLEClientCharacteristic  vibe_characteristic(LBS_UUID_CHR_VIBE);
 
 struct cpu_struct hand_data = { 0 };
 
-//add vibration feedback
+const bool hand = true;  // true = left & red  false = right and green
 
-bool hand = true;  //true = left & red  false = right and green
+bool ble_connected = false;
+
 int hand_led_pin = 0;
 float battery_voltage = 4.2;
+
+void vibe_notify_callback(BLEClientCharacteristic* chr, uint8_t* data, uint16_t len) {
+  if ( len == 1) {
+    if (hand) {  //left
+      if ((data[0] & 0xF0) == 0x00)
+        hand_data.vibe = false;
+      else
+        hand_data.vibe = true;
+    } else { //right
+      if ((data[0] & 0x0F) == 0x00)
+        hand_data.vibe = false;
+      else
+        hand_data.vibe = true;
+    }
+  }
+}
 
 void cent_connect_callback(uint16_t conn_handle) {
   BLEConnection* connection = Bluefruit.Connection(conn_handle);
@@ -33,26 +55,36 @@ void cent_connect_callback(uint16_t conn_handle) {
   }
 
   if (!hand_service.discover(conn_handle)) {
-    Serial.println("Service mismatch.");
+    Serial.println("hand_service discovery problem.");
     Bluefruit.Scanner.resume();
     return;
   }
 
   if (!hand_characteristic.discover()) {
-    Serial.println("Characteristic mismatch.");
+    Serial.println("hand_characteristic discovery problem.");
     Bluefruit.Scanner.resume();
     return;
   }
-
+  if (!vibe_characteristic.discover()) {
+    Serial.println("vibe_characteristic discovery problem.");
+    Bluefruit.Scanner.resume();
+    return;
+  }
+  if (!vibe_characteristic.enableNotify()) {
+    Serial.println("vibe_characteristic enableNotify problem.");
+    Bluefruit.Scanner.resume();
+    return;
+  }
+    ble_connected = true;
 }
 
 void cent_disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   Serial.println("[Central] Disconnected");
+  ble_connected = false;
   Bluefruit.Scanner.resume();
 }
-
 void setup() {
-  
+  //battery meter adc settings
   analogReference(AR_INTERNAL_2_4);  //Vref=2.4V
   analogReadResolution(12);          //12bits
 
@@ -67,9 +99,13 @@ void setup() {
   pinMode(22 , OUTPUT);
   digitalWrite(22 , LOW);
 
+  //debug
   Serial.begin(115200);
 
-  vibe_init();
+  // vibe motor
+  pinMode(D0, OUTPUT);
+  digitalWrite(D0, LOW);
+
   imu_init();
   sound_init();
 
@@ -92,6 +128,8 @@ void setup() {
   Bluefruit.setName("Bluefruit52");
   hand_service.begin();
   hand_characteristic.begin();
+  vibe_characteristic.setNotifyCallback(vibe_notify_callback);
+  vibe_characteristic.begin();
 
   // Start Central Scan
   Bluefruit.setConnLedInterval(250);
@@ -106,20 +144,6 @@ void setup() {
   digitalWrite(LED_RED, HIGH);
   digitalWrite(LED_GREEN, HIGH);
   digitalWrite(hand_led_pin, LOW);
-}
-
-
-bool update_mic_and_imu(void) {
-  //read voltage measure 0.03 v low (experimentally)
-
-  double vBat = ((((float)analogRead(PIN_VBAT)) * 2.4) / 4096.0) * 1510.0 / 510.0; // Voltage divider from Vbat to ADC
-  battery_voltage = battery_voltage * 0.95 + 0.05 * vBat;
-
-  if (sound_update(&hand_data)) {  // updates at 20hz set by sample rate and buffer size
-    imu_update(&hand_data);      //update the IMU at the same cadence as the microphone
-    return true;
-  }
-  return false;
 }
 
 void scan_callback(ble_gap_evt_adv_report_t* report) {
@@ -145,12 +169,18 @@ void scan_callback(ble_gap_evt_adv_report_t* report) {
 
 
 void loop() {
-  static int loop_time_total = 0;
-  uint32_t loop_start_time = micros();
+  static int main_fps = 0;
+  main_fps++;
+  static int imu_fps = 0;
 
-  if (update_mic_and_imu()) {
+  if (imu_timer.check()) {
+    imu_update(&hand_data);
+    imu_fps++;
+  }
 
-    if (Bluefruit.Central.connected()) {
+  if (sound_update(&hand_data)) { // updates at 20hz set by sample rate and buffer
+
+    if (ble_connected) {
       uint8_t payload[15] = { 0 };
 
       payload[14] = hand_data.tap_event;
@@ -172,6 +202,9 @@ void loop() {
       payload[0] = hand_data.msg_count++;
 
       hand_characteristic.write(payload, 15);
+
+      digitalWrite(D0, hand_data.vibe );
+
       digitalWrite(hand_led_pin, hand_data.msg_count & 0x01);
 
       //battery empty indicator when connected
@@ -182,7 +215,10 @@ void loop() {
       }
 
     } else {
-
+      hand_data.vibe = false;
+      
+      digitalWrite(D0, hand_data.vibe );
+      
       //battery full indicator when disconnected
       if (battery_voltage > 4.0) {
         digitalWrite(LED_BLUE, !(millis() >> 8 & 0x01));
@@ -193,27 +229,23 @@ void loop() {
 
     }
     hand_data.fps++;
-    loop_time_total += micros() - loop_start_time;
+
+    //read voltage measure 0.03 v low (experimentally)
+    double vBat = ((((float)analogRead(PIN_VBAT)) * 2.4) / 4096.0) * 1510.0 / 510.0; // Voltage divider from Vbat to ADC
+    battery_voltage = battery_voltage * 0.95 + 0.05 * vBat;
+
   }
-  static int tap_event_counter_last = 0 ;
-  if (hand_data.tap_event_counter != tap_event_counter_last){
-    tap_event_counter_last = hand_data.tap_event_counter;
-    vibe_add_quick_slow(hand_data.tap_event,0);
-  }
-  vibe_update();
-  
-  static uint32_t fps_time = 0;
-  if (millis() - fps_time > 1000) {
-    fps_time += 1000;
-    if (millis() - fps_time > 1000)
-      fps_time = millis();
+
+  if (fps_timer.check()) {
+    Serial.print(imu_fps);
+    Serial.print("\t");
+    Serial.print(main_fps);
     Serial.print("\t");
     Serial.print(battery_voltage);
     Serial.print("\t");
-    Serial.print(loop_time_total / 10000);
-    Serial.print("% Load \tFPS:");
     Serial.println(hand_data.fps);
+    imu_fps = 0;
     hand_data.fps = 0;
-    loop_time_total = 0;
+    main_fps = 0;
   }
 }

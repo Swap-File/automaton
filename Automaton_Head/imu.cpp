@@ -17,7 +17,7 @@ volatile static uint8_t tap_interrupt_counter = 0;
 
 static void tap_isr() {
   uint32_t tap_time = millis();
-  if (tap_time - tap_time_previous < TAP_SPACING ) {  //add vibe check
+  if (tap_time - tap_time_previous < TAP_SPACING ) {
     return;
   }
   tap_interrupt_counter++;
