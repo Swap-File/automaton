@@ -25,5 +25,4 @@ struct cpu_struct {
   bool connected;
 };
 
-
 #endif
