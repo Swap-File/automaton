@@ -6,6 +6,7 @@
 #include "imu.h"
 #include "vibe.h"
 #include "ble.h"
+#include "gesture.h"
 
 Metro metro_1hz = Metro(1000);
 Metro metro_20hz = Metro(50);
@@ -21,12 +22,6 @@ Adafruit_NeoPixel pixels(60, D2, NEO_GRB + NEO_KHZ800);  // 60 safe load
 
 void setup()
 {
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
-
-  digitalWrite(LED_RED, HIGH);
-  digitalWrite(LED_GREEN, HIGH);
-
   Serial.begin(115200);
   Serial1.begin(115200);
   // while ( !Serial ) delay(10);   // for nrf52840 with native usb
@@ -36,6 +31,8 @@ void setup()
 
   pixels.begin();
 }
+
+
 
 void loop()
 {
@@ -47,6 +44,8 @@ void loop()
     vibe_update(&cpu_left.vibe, &cpu_right.vibe);
     ble_notify(cpu_left.vibe, cpu_right.vibe);
     notify_fps++;
+    gesture_check(&cpu_left, &cpu_right);
+
   }
 
   if (metro_100hz.check()) {
@@ -81,16 +80,17 @@ void loop()
 
   //STATS
   if (metro_1hz.check()) {
-    Serial.print(cpu_head.fps);
-    Serial.print(" ");
-    Serial.print(led_fps);
-    Serial.print(" ");
-    Serial.print(notify_fps);
-    Serial.print(" ");
-    Serial.print(cpu_left.fps);
-    Serial.print(" ");
-    Serial.println(cpu_right.fps);
-
+    /*
+      Serial.print(cpu_head.fps);
+      Serial.print(" ");
+      Serial.print(led_fps);
+      Serial.print(" ");
+      Serial.print(notify_fps);
+      Serial.print(" ");
+      Serial.print(cpu_left.fps);
+      Serial.print(" ");
+      Serial.println(cpu_right.fps);
+    */
     cpu_head.fps = 0;
     notify_fps = 0;
     led_fps = 0;

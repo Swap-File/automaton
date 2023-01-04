@@ -2,6 +2,8 @@
 #include "vibe.h"
 #include "ble.h"
 
+#define EXPIRE_CPU 100
+
 // max concurrent connections supported by this example
 #define MAX_PRPH_CONNECTION   2
 static uint8_t connection_count = 0;
@@ -48,6 +50,7 @@ void lsbLEFT_write_callback(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* 
   if (len == 15) {
     _cpu_left->msg_time = millis();
     _cpu_left->fps++;
+    data[9] = 255 - data[9];  //flip reference
     payload_to_struct(_cpu_left, data);
     digitalWrite(LED_RED,  _cpu_left->msg_count & 0x01);
   }
@@ -58,6 +61,7 @@ void lsbRIGHT_write_callback(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t*
   if (len == 15) {
     _cpu_right->msg_time = millis();
     _cpu_right->fps++;
+    data[10] = 255 - data[10];  //flip reference
     payload_to_struct(_cpu_right, data);
     digitalWrite(LED_GREEN, _cpu_right->msg_count & 0x01);
   }
@@ -85,10 +89,16 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   connect_check();
 }
 
-void ble_init(struct cpu_struct *cpu_left,struct cpu_struct *cpu_right) {
+void ble_init(struct cpu_struct *cpu_left, struct cpu_struct *cpu_right) {
+  pinMode(LED_RED, OUTPUT);
+  pinMode(LED_GREEN, OUTPUT);
+
+  digitalWrite(LED_RED, HIGH);
+  digitalWrite(LED_GREEN, HIGH);
+
   _cpu_left = cpu_left;
   _cpu_right = cpu_right;
-  
+
   // Initialize Bluefruit with max concurrent connections as Peripheral = MAX_PRPH_CONNECTION, Central = 0
   Serial.println("Initialise the Bluefruit nRF52 module");
   Bluefruit.begin(MAX_PRPH_CONNECTION, 0);
@@ -131,12 +141,35 @@ void ble_init(struct cpu_struct *cpu_left,struct cpu_struct *cpu_right) {
   Bluefruit.Advertising.start(0);                // 0 = Don't stop advertising after n seconds
 }
 
+void clear_cpu(struct cpu_struct *cpu) {
+  cpu->fft[7] = 0;
+  cpu->fft[6] = 0;
+  cpu->fft[5] = 0;
+  cpu->fft[4] = 0;
+  cpu->fft[3] = 0;
+  cpu->fft[2] = 0;
+  cpu->fft[1] = 0;
+  cpu->fft[0] = 0;
+
+}
+void expire_cpu(void) {
+
+  if (millis() - _cpu_left->msg_time > EXPIRE_CPU)
+    clear_cpu(_cpu_left);
+
+  if (millis() - _cpu_right->msg_time > EXPIRE_CPU)
+    clear_cpu(_cpu_right);
+
+
+}
 void ble_notify(bool left, bool right) {
-  static bool alternate = false; // interleaved 
+  expire_cpu();
+
+  static bool alternate = false; // interleaved
 
   // Do we want to handle the requests device side?
   // Is this good enough?
-  
+
   if (alternate) {
     lsbVIBE.notify8(0, vibe_read(left, right));
   } else {

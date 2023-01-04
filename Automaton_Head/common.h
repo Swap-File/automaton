@@ -8,6 +8,8 @@ struct cpu_struct {
   
   uint8_t fft[FFT_SAMPLES];
 
+  float yaw_slow;
+  int     yaw_diff;
   uint8_t yaw;
   uint8_t pitch;
   uint8_t roll;
@@ -22,7 +24,6 @@ struct cpu_struct {
 
   int fps;
 
-  bool connected;
 };
 
 #endif
