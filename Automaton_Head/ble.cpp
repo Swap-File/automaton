@@ -104,7 +104,7 @@ void ble_init(struct cpu_struct *cpu_left, struct cpu_struct *cpu_right) {
   Bluefruit.begin(MAX_PRPH_CONNECTION, 0);
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
-
+  
   lbs.begin();
 
   lsbLEFT.setProperties( CHR_PROPS_WRITE_WO_RESP );

@@ -100,6 +100,7 @@ bool ble_send(struct cpu_struct *hand_data) {
     hand_characteristic.write(payload, 15);
     return true;
   }
+  Bluefruit.Scanner.resume();
   return false;
 }
 
@@ -125,11 +126,10 @@ void scan_callback(ble_gap_evt_adv_report_t* report) {
 }
 
 void ble_init(bool hand) {
-  
+	
   // vibe motor
   pinMode(D0, OUTPUT);
   digitalWrite(D0, LOW);
-  
   _hand = hand;
 
   if (_hand) {

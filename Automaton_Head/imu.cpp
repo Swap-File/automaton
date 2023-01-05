@@ -33,8 +33,8 @@ void imu_update(struct cpu_struct *hand_data) {
   }
 
 
-  const FusionVector gyroscope = { myIMU.readFloatGyroX(), myIMU.readFloatGyroY(), myIMU.readFloatGyroZ() };         // replace this with actual gyroscope data in degrees/s
-  const FusionVector accelerometer = { myIMU.readFloatAccelX(), myIMU.readFloatAccelY(), myIMU.readFloatAccelZ() };  // replace this with actual accelerometer data in g
+  const FusionVector gyroscope = { myIMU.readFloatGyroZ(), myIMU.readFloatGyroY(), myIMU.readFloatGyroX() };         // replace this with actual gyroscope data in degrees/s
+  const FusionVector accelerometer = { myIMU.readFloatAccelZ(), myIMU.readFloatAccelY(), myIMU.readFloatAccelX() };  // replace this with actual accelerometer data in g
   FusionAhrsUpdateNoMagnetometer(&ahrs, gyroscope, accelerometer, IMU_SAMPLE_RATE);
   euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
 

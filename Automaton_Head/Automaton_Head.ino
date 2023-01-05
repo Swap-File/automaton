@@ -44,7 +44,8 @@ void loop()
     vibe_update(&cpu_left.vibe, &cpu_right.vibe);
     ble_notify(cpu_left.vibe, cpu_right.vibe);
     notify_fps++;
-    gesture_check(&cpu_left, &cpu_right);
+
+    gesture_check(&cpu_left, &cpu_right, &cpu_head);
 
   }
 
@@ -80,17 +81,17 @@ void loop()
 
   //STATS
   if (metro_1hz.check()) {
-    /*
-      Serial.print(cpu_head.fps);
-      Serial.print(" ");
-      Serial.print(led_fps);
-      Serial.print(" ");
-      Serial.print(notify_fps);
-      Serial.print(" ");
-      Serial.print(cpu_left.fps);
-      Serial.print(" ");
-      Serial.println(cpu_right.fps);
-    */
+/*
+    Serial.print(cpu_head.fps);
+    Serial.print(" ");
+    Serial.print(led_fps);
+    Serial.print(" ");
+    Serial.print(notify_fps);
+    Serial.print(" ");
+    Serial.print(cpu_left.fps);
+    Serial.print(" ");
+    Serial.println(cpu_right.fps);
+*/
     cpu_head.fps = 0;
     notify_fps = 0;
     led_fps = 0;

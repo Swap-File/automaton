@@ -5,13 +5,23 @@
 
 struct cpu_struct {
   bool vibe;
-  
+
   uint8_t fft[FFT_SAMPLES];
 
-  float yaw_slow;
-  int     yaw_diff;
+  uint8_t cpu_data;
+
+  int recenter_counter;
+  
+  float   yaw_filtered;
+  float     yaw_ref;
   uint8_t yaw;
+
+  float   pitch_filtered;
+  float     pitch_ref;
   uint8_t pitch;
+
+  float   roll_filtered;
+  float     roll_ref;
   uint8_t roll;
 
   uint8_t step_count;
