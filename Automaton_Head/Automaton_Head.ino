@@ -1,10 +1,11 @@
+
 #include <bluefruit.h>
 #include <Adafruit_NeoPixel.h>
 #include <Metro.h>
 
 #include "common.h"
 #include "imu.h"
-#include "vibe.h"
+
 #include "ble.h"
 #include "gesture.h"
 
@@ -32,21 +33,15 @@ void setup()
   pixels.begin();
 }
 
-
-
-void loop()
-{
+void loop() {
   static int notify_fps = 0;
   static int led_fps = 0;
   cpu_head.fps++;
 
   if (metro_20hz.check()) {
-    vibe_update(&cpu_left.vibe, &cpu_right.vibe);
+    gesture_check(&cpu_left, &cpu_right, &cpu_head);
     ble_notify(cpu_left.vibe, cpu_right.vibe);
     notify_fps++;
-
-    gesture_check(&cpu_left, &cpu_right, &cpu_head);
-
   }
 
   if (metro_100hz.check()) {
@@ -65,33 +60,19 @@ void loop()
     led_fps++;
   }
 
-  //VIBE - PLACEHOLDER
-  static int left_tap_event_counter = 0;
-  static int right_tap_event_counter = 0;
-
-  if (left_tap_event_counter != cpu_left.tap_event_counter) {
-    vibe_add_quick_slow(VIBE_LEFT, 1, 0);
-    left_tap_event_counter =  cpu_left.tap_event_counter;
-  }
-
-  if (right_tap_event_counter != cpu_right.tap_event_counter) {
-    vibe_add_quick_slow(VIBE_RIGHT, 1, 0);
-    right_tap_event_counter = cpu_right.tap_event_counter;
-  }
-
   //STATS
   if (metro_1hz.check()) {
-/*
-    Serial.print(cpu_head.fps);
-    Serial.print(" ");
-    Serial.print(led_fps);
-    Serial.print(" ");
-    Serial.print(notify_fps);
-    Serial.print(" ");
-    Serial.print(cpu_left.fps);
-    Serial.print(" ");
-    Serial.println(cpu_right.fps);
-*/
+    /*
+        Serial.print(cpu_head.fps);
+        Serial.print(" ");
+        Serial.print(led_fps);
+        Serial.print(" ");
+        Serial.print(notify_fps);
+        Serial.print(" ");
+        Serial.print(cpu_left.fps);
+        Serial.print(" ");
+        Serial.println(cpu_right.fps);
+    */
     cpu_head.fps = 0;
     notify_fps = 0;
     led_fps = 0;

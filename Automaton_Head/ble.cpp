@@ -104,7 +104,7 @@ void ble_init(struct cpu_struct *cpu_left, struct cpu_struct *cpu_right) {
   Bluefruit.begin(MAX_PRPH_CONNECTION, 0);
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
-  
+
   lbs.begin();
 
   lsbLEFT.setProperties( CHR_PROPS_WRITE_WO_RESP );
@@ -153,14 +153,14 @@ void clear_cpu(struct cpu_struct *cpu) {
 
 }
 void expire_cpu(void) {
-
-  if (millis() - _cpu_left->msg_time > EXPIRE_CPU)
+  if (millis() - _cpu_left->msg_time > EXPIRE_CPU) {
     clear_cpu(_cpu_left);
-
-  if (millis() - _cpu_right->msg_time > EXPIRE_CPU)
+    digitalWrite(LED_RED, HIGH);
+  }
+  if (millis() - _cpu_right->msg_time > EXPIRE_CPU) {
     clear_cpu(_cpu_right);
-
-
+    digitalWrite(LED_GREEN, HIGH);
+  }
 }
 void ble_notify(bool left, bool right) {
   expire_cpu();

@@ -9,7 +9,7 @@ Metro imu_timer = Metro(10);
 
 struct cpu_struct hand_data = { 0 };
 
-const bool hand = false;  // true = left & red  false = right and green
+const bool hand = true;  // true = left & red  false = right and green
 
 int hand_led_pin = 0;
 float battery_voltage = 3.8;
