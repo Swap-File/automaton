@@ -26,7 +26,7 @@ struct cpu_struct {
 
 
   float   yaw_last_gesture;
-  bool    check_yaw;
+  bool    require_new_yaw;
   
   float   yaw_filtered;
   float   yaw_ref;
@@ -35,6 +35,7 @@ struct cpu_struct {
   float   pitch_filtered;
   float   pitch_ref;
   uint8_t pitch;
+  
   float   roll_last_gesture;
   float   roll_filtered;
   float   roll_ref;

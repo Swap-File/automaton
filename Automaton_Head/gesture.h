@@ -15,8 +15,8 @@
 #define GESTURE_UD   0b00110000
 #define GESTURE_NO   0b11000000
 
-
-#define IDLE_TIME_VARIANCE 1000
+ 
+#define ALLOWABLE_IDLE_TIME_VARIANCE 1000
 
 #define GESTURE_TIMEOUT 2000 // max milliseconds a gesture can take
 
@@ -27,7 +27,7 @@
 #define GESTURE_RECOGNIZING     255 
 
 // These set the required motion to detect a gesture
-#define YAW_GESTURE 15
+#define YAW_GESTURE 20
 #define PITCH_GESTURE 20
 #define ROLL_GESTURE 20
 
