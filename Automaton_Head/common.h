@@ -35,7 +35,7 @@ struct cpu_struct {
   float   pitch_filtered;
   float   pitch_ref;
   uint8_t pitch;
-
+  float   roll_last_gesture;
   float   roll_filtered;
   float   roll_ref;
   uint8_t roll;

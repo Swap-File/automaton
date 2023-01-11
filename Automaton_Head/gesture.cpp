@@ -108,8 +108,8 @@ static void check_for_gestures(struct cpu_struct *cpu_data) {
       cpu_data->gesture_completed = true;
 
       cpu_data-> yaw_last_gesture = cpu_data-> yaw;
-
-      if ((cpu_data->gesture & GESTURE_LR) != 0x00)
+      cpu_data->  roll_last_gesture = cpu_data->roll;
+      if ((cpu_data->gesture & (GESTURE_L | GESTURE_R )) != 0x00)
         check_yaw = true;
       else
         check_yaw = false;
@@ -183,6 +183,7 @@ static void find_relative_angles(struct cpu_struct *cpu_data) {
       //Serial.print(cpu_data->id);
       //Serial.println(" GESTURE_TIMEOUT");
       cpu_data-> yaw_last_gesture = cpu_data->yaw;
+      cpu_data->  roll_last_gesture = cpu_data->roll;
       check_yaw = true;
       cpu_data->gesture_completed = true;
       cpu_data->gesture_idled = false;

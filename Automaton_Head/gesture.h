@@ -32,9 +32,9 @@
 #define ROLL_GESTURE 20
 
 // These set the zone that idle is detected in
-#define PITCH_DEADZONE 15
-#define ROLL_DEADZONE 15
-#define YAW_DEADZONE 10
+#define PITCH_DEADZONE (PITCH_GESTURE - 5)
+#define ROLL_DEADZONE (ROLL_GESTURE -5)
+#define YAW_DEADZONE (YAW_GESTURE - 5)
 
 
 void gesture_check(struct cpu_struct *cpu_left,struct cpu_struct *cpu_right,struct cpu_struct * cpu_head);
