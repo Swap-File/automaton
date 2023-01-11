@@ -4,23 +4,17 @@
 #define FFT_SAMPLES 8
 
 
-#define GESTURE_CW   0b00000001
-#define GESTURE_CCW  0b00000010
-#define GESTURE_C    0b00111111
-#define GESTURE_L    0b00000100
-#define GESTURE_R    0b00001000
-#define GESTURE_LR   0b00111100
-#define GESTURE_U    0b00010000
-#define GESTURE_D    0b00100000
-#define GESTURE_UD   0b00110000
-#define GESTURE_NO   0b11000000
 
 struct cpu_struct {
-  
+  char id;
+
+  uint32_t gesture_idled_time;
   int gesture_magnitude_last; 
   int gesture_magnitude; 
-  bool gesture_handled;
+  uint8_t gesture_state;
   uint8_t gesture;
+  bool gesture_completed;
+  bool gesture_idled;
 
   int vibe_request;
   bool vibe;
@@ -30,9 +24,10 @@ struct cpu_struct {
 
   uint8_t fft[FFT_SAMPLES];
 
-  int centered_counter;
-  uint32_t centered_time;
 
+  float   yaw_last_gesture;
+  bool    check_yaw;
+  
   float   yaw_filtered;
   float   yaw_ref;
   uint8_t yaw;

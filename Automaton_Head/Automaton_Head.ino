@@ -23,6 +23,10 @@ Adafruit_NeoPixel pixels(60, D2, NEO_GRB + NEO_KHZ800);  // 60 safe load
 
 void setup()
 {
+  cpu_left.id = 'L';
+  cpu_right.id = 'R';
+  cpu_head.id = 'H';
+
   Serial.begin(115200);
   Serial1.begin(115200);
   // while ( !Serial ) delay(10);   // for nrf52840 with native usb
