@@ -30,7 +30,7 @@
 #if !defined(FastCRC_tables)
 #define FastCRC_tables
 #include "inttypes.h"
-#include <avr/pgmspace.h>
+
 
 const uint8_t crc_table_crc7[256] PROGMEM = {
 	0x00, 0x12, 0x24, 0x36, 0x48, 0x5a, 0x6c, 0x7e,

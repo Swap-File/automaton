@@ -3,7 +3,6 @@
 
 #include "common.h"
 
-
 #define GESTURE_CW   0b00000001
 #define GESTURE_CCW  0b00000010
 #define GESTURE_C    0b00111111
@@ -24,11 +23,12 @@
 //gesture state machine 
 #define GESTURE_IDLE            0
 #define GESTURE_IDLE_COUNT      3     //how many idle ticks to wait until we start recognizing
-#define GESTURE_RECOGNIZING     255 
+#define GESTURE_RECOGNIZING     128 
+#define GESTURE_RECOGNIZED      (GESTURE_RECOGNIZING + 1) 
 
 // These set the required motion to detect a gesture
-#define YAW_GESTURE 20
-#define PITCH_GESTURE 20
+#define YAW_GESTURE 15
+#define PITCH_GESTURE 25
 #define ROLL_GESTURE 20
 
 // These set the zone that idle is detected in

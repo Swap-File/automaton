@@ -1,21 +1,27 @@
 #ifndef _COMMON_H
 #define _COMMON_H
+#include <FastLED.h>
+
+#define FIN_NUM 15
+#define LEDS_PER_FIN 3
+#define X_LED_NUM (FIN_NUM * LEDS_PER_FIN )
+
+struct led_struct {
+  CRGB x_leds[X_LED_NUM];  //across the head, 15 fins, 3 leds each
+  uint8_t servos[FIN_NUM];
+};
 
 #define FFT_SAMPLES 8
-
-
 
 struct cpu_struct {
   char id;
 
-  uint32_t gesture_idled_time;
-  int gesture_magnitude_last; 
-  int gesture_magnitude; 
+  uint32_t gesture_start_time;
   uint8_t gesture_state;
   uint8_t gesture;
-  bool gesture_completed;
-  bool gesture_idled;
-
+  bool gesture_complete_flag;
+  bool gesture_start_flag;
+  bool gesture_complete_good_flag;
   int vibe_request;
   bool vibe;
 
@@ -24,19 +30,18 @@ struct cpu_struct {
 
   uint8_t fft[FFT_SAMPLES];
 
-
   float   yaw_last_gesture;
   bool    require_new_yaw;
-  
   float   yaw_filtered;
   float   yaw_ref;
   uint8_t yaw;
 
+
   float   pitch_filtered;
   float   pitch_ref;
   uint8_t pitch;
-  
-  float   roll_last_gesture;
+
+
   float   roll_filtered;
   float   roll_ref;
   uint8_t roll;
