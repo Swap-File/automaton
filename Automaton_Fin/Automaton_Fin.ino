@@ -7,7 +7,7 @@
 #include <cobs.h>
 #include "common.h"
 
-#define FIN_NUMBER 0
+#define FIN_NUMBER 7
 
 struct fin_struct fin_data = { 0 };
 
@@ -34,7 +34,6 @@ static uint8_t cpu2_framing_errors = 0;
 uint32_t cpu2_framing_errors_time = 0;
 static FastCRC8 CRC8;
 // serial com data
-
 #define INCOMING_BUFFER_SIZE 256
 static uint8_t incoming_incoming_decoded_buffer[INCOMING_BUFFER_SIZE];
 static uint8_t incoming_index = 0;
@@ -42,13 +41,12 @@ static uint8_t incoming_decoded_buffer[INCOMING_BUFFER_SIZE];
 uint32_t incoming_time = 0;
 
 static Metro timer_1hz = Metro(1000);
-static Metro timer_100hz = Metro(10);
 
 int servo_handle = -1;
 
 // the setup routine runs once when you press reset:
 void setup() {
-  delay(1000);
+  //delay(1000);
 
   Serial.begin(115200); //usb debug
   Serial1.begin(460800); //input bus
@@ -68,10 +66,14 @@ void setup() {
 
   pinMode(servoPin, OUTPUT);
   digitalWrite(servoPin, HIGH);
-
+  
+  fin_data.servo = 90;
+  
   servo_handle = RP2040_ISR_Servos.setupServo(servoPin, MIN_MICROS, MAX_MICROS);
   RP2040_ISR_Servos.setPosition(servo_handle, fin_data.servo );
   Serial.println("Boot");
+
+
 }
 
 int fps_led = 0;
@@ -102,7 +104,7 @@ void read_data_in(void) {
             cpu2_crc_errors_time = millis();
 
           } else {
-            
+
             incoming_time = millis();
 
             int idx = FIN_NUMBER * sizeof( fin_struct);
@@ -119,7 +121,7 @@ void read_data_in(void) {
             fin_data.led.g = incoming_decoded_buffer[idx++];
             fin_data.led.b = incoming_decoded_buffer[idx++];
             fin_data.servo = incoming_decoded_buffer[idx++];
-            
+
             framecounter++;
             fps_led++;
           }

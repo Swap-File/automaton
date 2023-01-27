@@ -9,6 +9,7 @@
 struct led_struct {
   CRGB x_leds[X_LED_NUM];  //across the head, 15 fins, 3 leds each
   uint8_t servos[FIN_NUM];
+  uint8_t helmet_mode;
 };
 
 #define FFT_SAMPLES 8
