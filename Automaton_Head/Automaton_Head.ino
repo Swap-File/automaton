@@ -1,4 +1,4 @@
-#define SERIAL_BUFFER_SIZE 256 //big enough for an entire datapoint
+#define SERIAL_BUFFER_SIZE 256  //big enough for an entire datapoint
 #include <bluefruit.h>
 #include <Metro.h>
 #include "common.h"
@@ -19,20 +19,18 @@ struct cpu_struct cpu_left = { 0 };
 struct cpu_struct cpu_right = { 0 };
 struct cpu_struct cpu_head = { 0 };
 
-void setup()
-{
+void setup() {
   cpu_left.id = 'L';
   cpu_right.id = 'R';
   cpu_head.id = 'H';
 
-  Serial.begin(115200);  //debug
+  Serial.begin(115200);   //debug
   Serial1.begin(460800);  //wings 115200, 230400, 250000, 460800, 921600, or 1000000
   // while ( !Serial ) delay(10);   // for nrf52840 with native usb
 
   imu_init();
   ble_init(&cpu_left, &cpu_right);
   leds_init();
-
 }
 
 void loop() {
@@ -76,17 +74,39 @@ void loop() {
     //}
 
     static uint8_t gHue = 0;
+    static int blocker = 0;
 
-    fill_rainbow( led_data.x_leds, X_LED_NUM, gHue, 7);
-    EVERY_N_MILLISECONDS( 20 ) {
+    fill_rainbow(led_data.x_leds, X_LED_NUM, gHue, 7);
+
+    EVERY_N_MILLISECONDS(20) {
       gHue++;
     }
+    EVERY_N_SECONDS(1) {
+      blocker++;
+      if (blocker >= X_LED_NUM)
+        blocker = 0;
+    }
+    led_data.x_leds[blocker] = CRGB(0, 0, 0);
+    fadeToBlackBy(led_data.x_leds, X_LED_NUM, 192);
     leds_update(&led_data);
     fin_update(&led_data);
     led_fps++;
   }
 
+  EVERY_N_SECONDS(5) {
+    static bool servo_pos = true;
 
+    for (int i = 0; i < 15; i++) {
+      if (servo_pos)
+        led_data.servos[i] = 255;
+      else
+        led_data.servos[i] = 0;
+
+    }
+
+
+    servo_pos = !servo_pos;
+  }
   //STATS
   if (metro_1hz.check()) {
 
@@ -106,5 +126,4 @@ void loop() {
     cpu_right.fps = 0;
     cpu_left.fps = 0;
   }
-
 }

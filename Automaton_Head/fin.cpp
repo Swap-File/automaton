@@ -22,12 +22,12 @@ static void map_servos(uint8_t servos[]) {
 }
 
 static void map_x_leds(const CRGB * x_leds) {
-
+  int idx = 0;
   for (int i = 0; i < FIN_NUM; i++) {
-    fin_array[i].strip[0] = x_leds[3 * i + 0];
-    fin_array[i].led = x_leds[3 * i + 1]; //middle led maps to the same as this
-    fin_array[i].strip[1] = x_leds[3 * i + 1];
-    fin_array[i].strip[2] = x_leds[3 * i + 2];
+    fin_array[i].strip[0] = x_leds[idx++];
+    fin_array[i].led = x_leds[idx]; //middle led maps to the same as this
+    fin_array[i].strip[1] = x_leds[idx++];
+    fin_array[i].strip[2] = x_leds[idx++];
   }
 }
 
@@ -41,19 +41,19 @@ void fin_update(struct led_struct * led_data) {
   int idx = 0;
   for (int i = 0; i < FIN_NUM; i++) {
 
-    raw_buffer[idx++] = (uint8_t)fin_array[i].strip[0].r;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].strip[0].g;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].strip[0].b;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].strip[1].r;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].strip[1].g;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].strip[1].b;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].strip[2].r;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].strip[2].g;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].strip[2].b;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].led.r;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].led.g;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].led.b;
-    raw_buffer[idx++] = (uint8_t)fin_array[i].servo;
+    raw_buffer[idx++] = fin_array[i].strip[0].r;
+    raw_buffer[idx++] = fin_array[i].strip[0].g;
+    raw_buffer[idx++] = fin_array[i].strip[0].b;
+    raw_buffer[idx++] = fin_array[i].strip[1].r;
+    raw_buffer[idx++] = fin_array[i].strip[1].g;
+    raw_buffer[idx++] = fin_array[i].strip[1].b;
+    raw_buffer[idx++] = fin_array[i].strip[2].r;
+    raw_buffer[idx++] = fin_array[i].strip[2].g;
+    raw_buffer[idx++] = fin_array[i].strip[2].b;
+    raw_buffer[idx++] = fin_array[i].led.r;
+    raw_buffer[idx++] = fin_array[i].led.g;
+    raw_buffer[idx++] = fin_array[i].led.b;
+    raw_buffer[idx++] = fin_array[i].servo;
   }
   //idx = 195  sizeof(fin_array) = 195
 

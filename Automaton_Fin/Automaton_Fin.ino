@@ -1,18 +1,19 @@
 #define SERIAL_BUFFER_SIZE 256
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
-#include <RP2040_ISR_Servo.h>
+#include <Servo.h>
 #include <Metro.h>
 #include <FastCRC.h>
 #include <cobs.h>
+#include <EEPROM.h>
 #include "common.h"
 
-#define FIN_NUMBER 7
+uint8_t fin_number = 0;
 
 struct fin_struct fin_data = { 0 };
 
 int onboard_neopixel_power = 11;
-int onboard_neopixel  = 12;
+int onboard_neopixel = 12;
 
 Adafruit_NeoPixel pixels1(3, 26, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel pixels2(1, onboard_neopixel, NEO_GRB + NEO_KHZ800);
@@ -23,10 +24,10 @@ int led_r = 17;
 
 int servoPin = 27;
 
-#define MIN_MICROS        500
-#define MAX_MICROS        2500
+#define MIN_MICROS 500
+#define MAX_MICROS 2500
 
-#define FIN_DATA_LEN (13*15)
+#define FIN_DATA_LEN (13 * 15)
 // global stats
 static uint8_t cpu2_crc_errors = 0;
 uint32_t cpu2_crc_errors_time = 0;
@@ -42,21 +43,26 @@ uint32_t incoming_time = 0;
 
 static Metro timer_1hz = Metro(1000);
 
-int servo_handle = -1;
+Servo myservo;
 
 // the setup routine runs once when you press reset:
 void setup() {
-  //delay(1000);
 
-  Serial.begin(115200); //usb debug
-  Serial1.begin(460800); //input bus
+  EEPROM.begin(16);
 
-  pinMode(led_r, OUTPUT); //onboard red
-  pinMode(led_g, OUTPUT); //onboard green
-  pinMode(led_b, OUTPUT); //onboard green
-  digitalWrite(led_r, HIGH); //off
-  digitalWrite(led_g, HIGH); //off
-  digitalWrite(led_b, HIGH); //off
+  fin_number = EEPROM.read(0);
+  
+  delay(fin_number * 100);
+
+  Serial.begin(115200);   //usb debug
+  Serial1.begin(460800);  //input bus
+
+  pinMode(led_r, OUTPUT);     //onboard red
+  pinMode(led_g, OUTPUT);     //onboard green
+  pinMode(led_b, OUTPUT);     //onboard green
+  digitalWrite(led_r, HIGH);  //off
+  digitalWrite(led_g, HIGH);  //off
+  digitalWrite(led_b, HIGH);  //off
 
   pixels1.begin();
   pixels2.begin();
@@ -66,14 +72,11 @@ void setup() {
 
   pinMode(servoPin, OUTPUT);
   digitalWrite(servoPin, HIGH);
-  
+
   fin_data.servo = 90;
-  
-  servo_handle = RP2040_ISR_Servos.setupServo(servoPin, MIN_MICROS, MAX_MICROS);
-  RP2040_ISR_Servos.setPosition(servo_handle, fin_data.servo );
+  myservo.attach(servoPin, MIN_MICROS, MAX_MICROS);
+  myservo.write(fin_data.servo);
   Serial.println("Boot");
-
-
 }
 
 int fps_led = 0;
@@ -107,7 +110,7 @@ void read_data_in(void) {
 
             incoming_time = millis();
 
-            int idx = FIN_NUMBER * sizeof( fin_struct);
+            int idx = fin_number * sizeof(fin_struct);
             fin_data.strip[0].r = incoming_decoded_buffer[idx++];
             fin_data.strip[0].g = incoming_decoded_buffer[idx++];
             fin_data.strip[0].b = incoming_decoded_buffer[idx++];
@@ -146,6 +149,9 @@ void loop() {
   read_data_in();
 
   if (timer_1hz.check()) {
+    Serial.print("Fin ID: ");
+    Serial.print(fin_number);
+    Serial.print(" ");
     Serial.print(cpu2_framing_errors);
     Serial.print(" ");
     Serial.print(cpu2_crc_errors);
@@ -156,11 +162,20 @@ void loop() {
     fps_led = 0;
     fps_logic = 0;
   }
+  if (Serial.available()) {
+    Serial.read();
+    fin_number++;
+    if (fin_number > 14)
+      fin_number = 0;
+    EEPROM.write(0, fin_number);
+    EEPROM.commit();
+  }
+
 
 
   if (millis() - incoming_time > 500) {
     if (serial_connected == true) {
-      memset( &fin_data, 0, sizeof(fin_data));
+      memset(&fin_data, 0, sizeof(fin_data));
       serial_connected = false;
     }
   } else {
@@ -170,7 +185,7 @@ void loop() {
   }
 
   if (serial_connected)
-    RP2040_ISR_Servos.setPosition(servo_handle, fin_data.servo );
+    myservo.write(fin_data.servo);
 
   //indicator LEDS
   if (serial_connected)
@@ -196,5 +211,4 @@ void loop() {
 
   pixels1.show();
   pixels2.show();
-
 }
