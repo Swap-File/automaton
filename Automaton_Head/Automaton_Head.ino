@@ -7,6 +7,7 @@
 #include "ble.h"
 #include "gesture.h"
 #include "leds.h"
+#include "mem.h"
 
 struct led_struct led_data;
 
@@ -31,6 +32,7 @@ void setup() {
   imu_init();
   ble_init(&cpu_left, &cpu_right);
   leds_init();
+  mem_init();
 }
 
 void loop() {
@@ -95,21 +97,17 @@ void loop() {
 
   EVERY_N_SECONDS(5) {
     static bool servo_pos = true;
-
     for (int i = 0; i < 15; i++) {
-      if (servo_pos)
-        led_data.servos[i] = 255;
-      else
-        led_data.servos[i] = 0;
-
+      // if (servo_pos)
+      led_data.servos[i] = 0;  //down
+      //else
+      // led_data.servos[i] = 0;    //up
     }
-
-
     servo_pos = !servo_pos;
   }
+
   //STATS
   if (metro_1hz.check()) {
-
     Serial.print(cpu_head.fps);
     Serial.print(" ");
     Serial.print(led_fps);
@@ -119,11 +117,12 @@ void loop() {
     Serial.print(cpu_left.fps);
     Serial.print(" ");
     Serial.println(cpu_right.fps);
-
     cpu_head.fps = 0;
     notify_fps = 0;
     led_fps = 0;
     cpu_right.fps = 0;
     cpu_left.fps = 0;
   }
+
+  mem_update();
 }
