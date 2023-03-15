@@ -4,10 +4,12 @@
 
 #define FIN_NUM 15
 #define LEDS_PER_FIN 3
-#define X_LED_NUM (FIN_NUM * LEDS_PER_FIN )
+#define X_LED_NUM (FIN_NUM * LEDS_PER_FIN)
+#define Y_LED_NUM 10
 
 struct led_struct {
   CRGB x_leds[X_LED_NUM];  //across the head, 15 fins, 3 leds each
+  CRGB y_leds[Y_LED_NUM];  //across the head, 15 fins, 3 leds each
   uint8_t servos[FIN_NUM];
   uint8_t helmet_mode;
 };
@@ -31,20 +33,20 @@ struct cpu_struct {
 
   uint8_t fft[FFT_SAMPLES];
 
-  float   yaw_last_gesture;
-  bool    require_new_yaw;
-  float   yaw_filtered;
-  float   yaw_ref;
+  float yaw_last_gesture;
+  bool require_new_yaw;
+  float yaw_filtered;
+  float yaw_ref;
   uint8_t yaw;
 
 
-  float   pitch_filtered;
-  float   pitch_ref;
+  float pitch_filtered;
+  float pitch_ref;
   uint8_t pitch;
 
 
-  float   roll_filtered;
-  float   roll_ref;
+  float roll_filtered;
+  float roll_ref;
   uint8_t roll;
 
   uint8_t step_count;
@@ -56,7 +58,6 @@ struct cpu_struct {
   uint8_t msg_count;
 
   int fps;
-
 };
 
 #endif

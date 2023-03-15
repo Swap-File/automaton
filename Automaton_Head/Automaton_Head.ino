@@ -8,7 +8,8 @@
 #include "gesture.h"
 #include "leds.h"
 #include "mem.h"
-
+#include "effects.h"
+#include <FastLED.h>
 struct led_struct led_data;
 
 Metro metro_1hz = Metro(1000);
@@ -67,44 +68,15 @@ void loop() {
   }
 
   if (metro_50hz.check()) {
+    effects_update(&led_data,&cpu_left, &cpu_right);
 
 
-    //led test
-    //for (int i = 0; i < 8; i++) {
-    //   led_data.x_leds[i] = CRGB(cpu_left.fft[i], cpu_right.fft[i], 0);
-    //   led_data.x_leds[16 - 1 - i] = CRGB(cpu_left.fft[i], cpu_right.fft[i], 0);
-    //}
-
-    static uint8_t gHue = 0;
-    static int blocker = 0;
-
-    fill_rainbow(led_data.x_leds, X_LED_NUM, gHue, 7);
-
-    EVERY_N_MILLISECONDS(20) {
-      gHue++;
-    }
-    EVERY_N_SECONDS(1) {
-      blocker++;
-      if (blocker >= X_LED_NUM)
-        blocker = 0;
-    }
-    led_data.x_leds[blocker] = CRGB(0, 0, 0);
-    fadeToBlackBy(led_data.x_leds, X_LED_NUM, 192);
     leds_update(&led_data);
     fin_update(&led_data);
     led_fps++;
   }
 
-  EVERY_N_SECONDS(5) {
-    static bool servo_pos = true;
-    for (int i = 0; i < 15; i++) {
-      // if (servo_pos)
-      led_data.servos[i] = 0;  //down
-      //else
-      // led_data.servos[i] = 0;    //up
-    }
-    servo_pos = !servo_pos;
-  }
+
 
   //STATS
   if (metro_1hz.check()) {
