@@ -4,7 +4,6 @@
 
 #include "common.h"
 
-
 void leds_update(struct led_struct * led_data);
 void leds_init(void);
 

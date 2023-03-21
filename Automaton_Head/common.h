@@ -8,10 +8,24 @@
 #define Y_LED_NUM 10
 
 struct led_struct {
-  CRGB x_leds[X_LED_NUM];  //across the head, 15 fins, 3 leds each
-  CRGB y_leds[Y_LED_NUM];  //across the head, 15 fins, 3 leds each
+  CRGB x_leds[X_LED_NUM];      //across the head, 15 fins, 3 leds each
+  CRGB x_fft_leds[X_LED_NUM];  //across the head, 15 fins, 3 leds each
+  CRGB y_leds[Y_LED_NUM];      //across the head, 15 fins, 3 leds each
   uint8_t servos[FIN_NUM];
   uint8_t helmet_mode;
+
+  //controls
+  bool sound_gems = false;
+  bool sound_fins = true;
+  bool sound_brows = true;
+  bool off = false;
+  int effect_index = 0;
+  int palette_index = 0;
+
+  bool audio_on = true;
+
+ 
+ 
 };
 
 #define FFT_SAMPLES 8

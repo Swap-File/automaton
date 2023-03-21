@@ -6,7 +6,7 @@
 
 // max concurrent connections supported by this example
 #define MAX_PRPH_CONNECTION 2
-static uint8_t connection_count = 0;
+ uint8_t connection_count = 0;
 
 struct cpu_struct *_cpu_left;
 struct cpu_struct *_cpu_right;

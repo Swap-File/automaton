@@ -21,6 +21,7 @@ struct cpu_struct cpu_left = { 0 };
 struct cpu_struct cpu_right = { 0 };
 struct cpu_struct cpu_head = { 0 };
 
+extern uint8_t connection_count;
 void setup() {
   cpu_left.id = 'L';
   cpu_right.id = 'R';
@@ -52,30 +53,15 @@ void loop() {
   }
 
 
-  //fin test
-  static uint32_t servo_time = 0;
-  static bool fins_up = false;
-  if (millis() - servo_time > 5000) {
-    servo_time = millis();
-    fins_up = !fins_up;
-    for (int i; i < FIN_NUM; i++) {
-      //if (fins_up) {
-      //  led_data.servos[i] = 255;
-      //} else {
-      //  led_data.servos[i] = 0;
-      //}
-    }
-  }
-
   if (metro_50hz.check()) {
-    effects_update(&led_data,&cpu_left, &cpu_right);
 
 
+
+    effects_update(&led_data, &cpu_left, &cpu_right);
     leds_update(&led_data);
     fin_update(&led_data);
     led_fps++;
   }
-
 
 
   //STATS

@@ -13,6 +13,7 @@ File file(InternalFS);
 extern uint8_t servo_min[15];
 extern uint8_t servo_max[15];
 extern uint8_t servo_mode;
+extern uint8_t fin_effect;
 
 #define FILENAME "/automaton.txt"
 
@@ -113,18 +114,35 @@ void mem_update(void) {
         Serial.println("Reset");
         mem_default();
       }
-      if (serialinput[0] == 'a') {
-        Serial.println("AUTO");
+      if (serialinput[0] == 'z') {
+        Serial.println("pos 0");
         servo_mode = 0;
       }
-      if (serialinput[0] == 'u') {
-        Serial.println("UP");
-        servo_mode = 2;
-      }
-      if (serialinput[0] == 'd') {
-        Serial.println("DOWN");
+      if (serialinput[0] == 'x') {
+        Serial.println("pos 1");
         servo_mode = 1;
       }
+      if (serialinput[0] == 'c') {
+        Serial.println("pos 2");
+        servo_mode = 2;
+      }
+      if (serialinput[0] == 'v') {
+        Serial.println("pos 3");
+        fin_effect = 0;
+      }
+      if (serialinput[0] == 'b') {
+        Serial.println("pos 4");
+        fin_effect = 1;
+      }
+      if (serialinput[0] == 'n') {
+        Serial.println("pos 5");
+        fin_effect = 2;
+      }
+      if (serialinput[0] == 'm') {
+        Serial.println("pos 5");
+        fin_effect =3;
+      }
+
     }
   }
 }
