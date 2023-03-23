@@ -235,13 +235,15 @@ void fin_update(struct led_struct* led_data) {
   map_servos(led_data->servos);
 
   clear_leds();
-  if (led_data->sound_fins) {
-    map_x_leds(led_data->x_fft_leds);
-  } else {
-    map_x_leds(led_data->x_leds);
-    map_y_leds(led_data->y_leds);
-  }
 
+  if (led_data->off == false) {
+    if (led_data->sound_fins) {
+      map_x_leds(led_data->x_fft_leds);
+    } else {
+      map_x_leds(led_data->x_leds);
+      map_y_leds(led_data->y_leds);
+    }
+  }
 
   uint8_t raw_buffer[195 + 1];  //data + CRC
 

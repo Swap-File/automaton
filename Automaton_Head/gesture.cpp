@@ -300,6 +300,9 @@ void gesture_check(struct cpu_struct *cpu_left, struct cpu_struct *cpu_right, st
     }
   }
 
+
+
+
   vibe_update(cpu_left);
   vibe_update(cpu_right);
 }

@@ -67,7 +67,8 @@ struct cpu_struct {
 
   uint8_t tap_event;
   uint8_t tap_event_counter;
-
+  uint8_t tap_event_counter_previous;
+  
   uint32_t msg_time;
   uint8_t msg_count;
 

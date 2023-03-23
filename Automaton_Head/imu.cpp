@@ -70,7 +70,7 @@ void imu_init(void) {
 
   myIMU.writeRegister(LSM6DS3_ACC_GYRO_TAP_CFG1, 0x8E);          // INTERRUPTS_ENABLE, SLOPE_FDS
   myIMU.writeRegister(LSM6DS3_ACC_GYRO_CTRL10_C, 0x3C);          //enable pedometer
-  myIMU.writeRegister(LSM6DS3_ACC_GYRO_TAP_THS_6D, 0b11000100);  //tap threshold
+  myIMU.writeRegister(LSM6DS3_ACC_GYRO_TAP_THS_6D, 0b11000001);  //tap threshold
   //myIMU.writeRegister(LSM6DS3_ACC_GYRO_INT_DUR2, 0x7F); //tap duraction
   myIMU.writeRegister(LSM6DS3_ACC_GYRO_MD1_CFG, 0b01000000);  //single tap route to int
 }

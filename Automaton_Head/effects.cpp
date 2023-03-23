@@ -38,13 +38,6 @@ CRGBPalette16 palette = RainbowColors_p;
 
 void effects_update(struct led_struct *led_data, const struct cpu_struct *cpu_left, const struct cpu_struct *cpu_right) {
 
-  // led_data->sound_brows = true;
-  // led_data->sound_gems = false;
-  // led_data->sound_fins = true;
-
-
-
-  led_data->off = false;
 
   EVERY_N_SECONDS(18) {  // lazy, should consider start time
 

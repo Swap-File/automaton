@@ -17,14 +17,18 @@ struct fin_struct {
 void fin_update( struct led_struct* led_data);
 
 // fin positions
-#define FIN_UP 2
+#define FIN_MODE_FIRST 0
 #define FIN_DOWN 0
 #define FIN_MID 1 
-
+#define FIN_UP 2
+#define FIN_MODE_LAST 2
 // fin movement style
+
+#define FIN_EFFECT_FIRST 0
 #define FIN_IMMEDIATE 0
 #define FIN_LEFT 1
 #define FIN_RIGHT 2
 #define FIN_ALT 3
+#define FIN_EFFECT_LAST 3
 
 #endif

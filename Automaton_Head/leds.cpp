@@ -9,21 +9,21 @@ Adafruit_NeoPixel pixels(GEM_LED_LENGTH, D2, NEO_GRB + NEO_KHZ800);  // 60 safe 
 static CRGB gem_leds[GEM_LED_LENGTH];
 
 void brow_map_x(const CRGB* x_leds) {
-  int i = 25; //front eyebrow
+  int i = 25;  //front eyebrow
   for (int j = 0; j < 8; j++)
     gem_leds[i++] += x_leds[j];
 
-   i = 43; //front eyebrow
+  i = 43;  //front eyebrow
   for (int j = 44; j > 36; j--)
     gem_leds[i++] += x_leds[j];
 }
 
 void brow_map_y(const CRGB* y_leds) {
-  int i = 25; //front eyebrow
+  int i = 25;  //front eyebrow
   for (int j = 0; j < 8; j++)
     gem_leds[i++] += y_leds[0];
 
-  i = 43; //front eyebrow
+  i = 43;  //front eyebrow
   for (int j = 44; j > 36; j--)
     gem_leds[i++] += y_leds[0];
 }
@@ -82,7 +82,7 @@ void gem_map_x(const CRGB* x_leds) {
   gem_leds[i++] += x_leds[j];
 
   //  i = 25; //front eyebrow
-  i+=8;
+  i += 8;
 
   // i = 33;  //back right
   j = 24;
@@ -165,7 +165,7 @@ void gem_map_y(const CRGB* y_leds) {
   gem_leds[i++] += y_leds[1];
 
   // i = 25; //front eyebrow
-  i+=8;
+  i += 8;
 
   // i = 33;  //back right
   j = 24;
@@ -205,20 +205,22 @@ void leds_update(struct led_struct* led_data) {
 
   fill_solid(gem_leds, GEM_LED_LENGTH, CRGB(0, 0, 0));
 
-  if (led_data->sound_gems) {
-    gem_map_x(led_data->x_fft_leds);
-  } else {
-    gem_map_x(led_data->x_leds);
-    gem_map_y(led_data->y_leds);
-  }
+  if (led_data->off == false) {
+    if (led_data->sound_gems) {
+      gem_map_x(led_data->x_fft_leds);
+    } else {
+      gem_map_x(led_data->x_leds);
+      gem_map_y(led_data->y_leds);
+    }
 
-  if (led_data->sound_brows) {
-    brow_map_x(led_data->x_fft_leds);
-  }else{
-    brow_map_x(led_data->x_leds);
-    brow_map_y(led_data->y_leds);
+    if (led_data->sound_brows) {
+      brow_map_x(led_data->x_fft_leds);
+    } else {
+      brow_map_x(led_data->x_leds);
+      brow_map_y(led_data->y_leds);
+    }
   }
-
+  
   gem_render_to_adafruit();
 }
 

@@ -9,6 +9,9 @@
 #include "leds.h"
 #include "mem.h"
 #include "effects.h"
+#include "logic.h"
+#include "sound.h"
+
 #include <FastLED.h>
 struct led_struct led_data;
 
@@ -35,6 +38,7 @@ void setup() {
   ble_init(&cpu_left, &cpu_right);
   leds_init();
   mem_init();
+  sound_init();
 }
 
 void loop() {
@@ -53,16 +57,21 @@ void loop() {
   }
 
 
+  sound_update(&cpu_head);
+
+  logic_update(&led_data, &cpu_left, &cpu_right, &cpu_head);
+
   if (metro_50hz.check()) {
-
-
+    
+    for (int i = 0; i < 8; i++) {
+      cpu_left.fft[i] = cpu_head.fft[i];
+    }
 
     effects_update(&led_data, &cpu_left, &cpu_right);
     leds_update(&led_data);
     fin_update(&led_data);
     led_fps++;
   }
-
 
   //STATS
   if (metro_1hz.check()) {
