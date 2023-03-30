@@ -2,21 +2,15 @@
 #include "FastCRC.h"
 #include "cobs.h"
 #include "fin.h"
+#include "mem.h"
 #include "common.h"
 static FastCRC8 CRC8;
 
 #define SERVO_ON_TIME 250
 static struct fin_struct fin_array[FIN_NUM];
 
-
-//allow per servo settings
-uint8_t servo_min[15];
-uint8_t servo_max[15];
-
-
-
 #define FIN_HANDLED 255
-uint8_t servo_mode = FIN_UP;
+static uint8_t servo_mode = FIN_UP;
 
 
 uint8_t fin_pos_target[15];
@@ -36,7 +30,34 @@ uint32_t fin_right_down[15] = { 700, 600, 600, 500, 500, 400, 400, 300, 300, 200
 uint32_t fin_alt_up[15] = { 0, 200, 100, 300, 0, 200, 100, 300, 100, 200, 0, 300, 100, 200, 0 };
 uint32_t fin_alt_down[15] = { 300, 100, 200, 0, 300, 100, 200, 0, 200, 100, 300, 0, 200, 100, 300 };
 
-uint8_t fin_effect = FIN_IMMEDIATE;
+static uint8_t fin_effect = FIN_IMMEDIATE;
+
+void fin_set(int mode, int effect) {
+  servo_mode = mode;
+  fin_effect = effect;
+}
+
+void fin_set(int mode) {
+  servo_mode = mode;
+}
+
+int fin_random(void) {
+  int last_mode = servo_mode;
+  int last_effect = fin_effect;
+
+  while (last_mode == servo_mode) {
+    servo_mode = random(FIN_MODE_FIRST, FIN_MODE_LAST);
+  }
+  while (last_effect == fin_effect) {
+    fin_effect = random(FIN_EFFECT_FIRST, FIN_EFFECT_LAST);
+  }
+  return servo_mode;
+}
+
+int fin_mode(void) {
+  return servo_mode;
+}
+
 
 static void map_servos(uint8_t servos[]) {
 
@@ -163,15 +184,14 @@ static void map_servos(uint8_t servos[]) {
   }
 
 
-
   for (int i = 0; i < FIN_NUM; i++) {
     if (millis() > fin_execute_time[i]) {
       if (fin_pos_target[i] == 255) {
-        fin_array[i].servo = servo_max[i];
+        fin_array[i].servo = mem_get_max(i);
       } else if (fin_pos_target[i] == 0) {
-        fin_array[i].servo = servo_min[i];
+        fin_array[i].servo = mem_get_min(i);
       } else {
-        fin_array[i].servo = constrain(map(fin_pos_target[i], 0, 255, servo_min[i], servo_max[i]), servo_min[i], servo_max[i]);
+        fin_array[i].servo = constrain(map(fin_pos_target[i], 0, 255, mem_get_min(i), mem_get_max(i)), mem_get_min(i), mem_get_max(i));
       }
     }
   }

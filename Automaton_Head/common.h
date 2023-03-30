@@ -34,11 +34,9 @@ struct cpu_struct {
   char id;
 
   uint32_t gesture_start_time;
-  uint8_t gesture_state;
-  uint8_t gesture;
-  bool gesture_complete_flag;
-  bool gesture_start_flag;
-  bool gesture_complete_good_flag;
+  uint32_t gesture_stop_time;
+  uint8_t gesture_found;
+
   int vibe_request;
   bool vibe;
 
@@ -47,19 +45,12 @@ struct cpu_struct {
 
   uint8_t fft[FFT_SAMPLES];
 
-  float yaw_last_gesture;
-  bool require_new_yaw;
-  float yaw_filtered;
   float yaw_ref;
   uint8_t yaw;
 
-
-  float pitch_filtered;
   float pitch_ref;
   uint8_t pitch;
 
-
-  float roll_filtered;
   float roll_ref;
   uint8_t roll;
 

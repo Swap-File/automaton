@@ -5,5 +5,6 @@
 
 void ble_init(struct cpu_struct *cpu_left,struct cpu_struct *cpu_right);
 void ble_notify(bool left, bool right);
+int ble_connection_count(void);
 
 #endif

@@ -5,7 +5,6 @@
 #include "imu.h"
 #include "fin.h"
 #include "ble.h"
-#include "gesture.h"
 #include "leds.h"
 #include "mem.h"
 #include "effects.h"
@@ -46,8 +45,10 @@ void loop() {
   static int led_fps = 0;
   cpu_head.fps++;
 
+  logic_update(&led_data, &cpu_left, &cpu_right, &cpu_head);
+  
   if (metro_20hz.check()) {
-    gesture_check(&cpu_left, &cpu_right, &cpu_head);
+   
     ble_notify(cpu_left.vibe, cpu_right.vibe);
     notify_fps++;
   }
@@ -59,15 +60,11 @@ void loop() {
 
   sound_update(&cpu_head);
 
-  logic_update(&led_data, &cpu_left, &cpu_right, &cpu_head);
 
   if (metro_50hz.check()) {
-    
-    for (int i = 0; i < 8; i++) {
-      cpu_left.fft[i] = cpu_head.fft[i];
-    }
+  
 
-    effects_update(&led_data, &cpu_left, &cpu_right);
+    effects_update(&led_data, &cpu_left, &cpu_right, &cpu_head);
     leds_update(&led_data);
     fin_update(&led_data);
     led_fps++;

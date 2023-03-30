@@ -36,8 +36,7 @@ static int sound_mode = 1;
 
 CRGBPalette16 palette = RainbowColors_p;
 
-void effects_update(struct led_struct *led_data, const struct cpu_struct *cpu_left, const struct cpu_struct *cpu_right) {
-
+void effects_update(struct led_struct *led_data, const struct cpu_struct *cpu_left, const struct cpu_struct *cpu_right, const struct cpu_struct *cpu_head) {
 
   EVERY_N_SECONDS(18) {  // lazy, should consider start time
 
@@ -49,6 +48,7 @@ void effects_update(struct led_struct *led_data, const struct cpu_struct *cpu_le
       sound_mode = 1;
     }
   }
+
 
   if (sound_mode == 1) {
     led_data->sound_brows = true;
@@ -66,11 +66,11 @@ void effects_update(struct led_struct *led_data, const struct cpu_struct *cpu_le
     led_data->sound_fins = false;
   }
 
-  if (led_data->audio_on == false){
+  if (led_data->audio_on == false) {
     led_data->sound_brows = false;
     led_data->sound_gems = false;
     led_data->sound_fins = false;
-}
+  }
 
   EVERY_N_SECONDS(20) {
     led_data->effect_index++;
@@ -140,7 +140,7 @@ void effects_update(struct led_struct *led_data, const struct cpu_struct *cpu_le
 
   //calculate audio stuff
   for (int i = 0; i < 8; i++) {
-    led_data->x_fft_leds[i] = ColorFromPalette(palette, gHue + (i * 2), max(cpu_right->fft[i], cpu_left->fft[i]));
+    led_data->x_fft_leds[i] = ColorFromPalette(palette, gHue + (i * 2), max(max(cpu_right->fft[i], cpu_left->fft[i]), cpu_head->fft[i]));
     led_data->x_fft_leds[i + 8] = led_data->x_fft_leds[i];
     if (i + 16 <= X_LED_NUM / 2)
       led_data->x_fft_leds[i + 16] = led_data->x_fft_leds[i];

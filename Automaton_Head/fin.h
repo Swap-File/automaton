@@ -15,6 +15,10 @@ struct fin_struct {
 };
 
 void fin_update( struct led_struct* led_data);
+void fin_set(int mode,int effect);
+void fin_set(int mode);
+int fin_random(void);
+int fin_mode(void);
 
 // fin positions
 #define FIN_MODE_FIRST 0

@@ -21,7 +21,9 @@ BLECharacteristic lsbLEFT(LBS_UUID_CHR_LEFT);
 BLECharacteristic lsbRIGHT(LBS_UUID_CHR_RIGHT);
 BLECharacteristic lsbVIBE(LBS_UUID_CHR_VIBE);
 
-
+int ble_connection_count(void){
+  return connection_count;
+}
 void payload_to_struct(struct cpu_struct *cpu, const uint8_t *payload) {
 
   cpu->tap_event = payload[14];

@@ -8,12 +8,17 @@ using namespace Adafruit_LittleFS_Namespace;
 
 File file(InternalFS);
 
-
 //allow per servo settings
-extern uint8_t servo_min[15];
-extern uint8_t servo_max[15];
-extern uint8_t servo_mode;
-extern uint8_t fin_effect;
+uint8_t servo_min[15];
+uint8_t servo_max[15];
+
+int mem_get_min(int i) {
+  return servo_min[i];
+}
+
+int mem_get_max(int i) {
+  return servo_max[i];
+}
 
 #define FILENAME "/automaton.txt"
 
@@ -91,7 +96,7 @@ void mem_update(void) {
           servo_max[fin] = max;
         mem_save();
       }
-
+      static int fin_effect = 0;
       Serial.println("Fin Min & Max ");
       for (int i = 0; i < FIN_NUM; i++) {
         Serial.print(i);
@@ -116,15 +121,15 @@ void mem_update(void) {
       }
       if (serialinput[0] == 'z') {
         Serial.println("pos 0");
-        servo_mode = 0;
+        fin_set(0, fin_effect);
       }
       if (serialinput[0] == 'x') {
         Serial.println("pos 1");
-        servo_mode = 1;
+        fin_set(1, fin_effect);
       }
       if (serialinput[0] == 'c') {
         Serial.println("pos 2");
-        servo_mode = 2;
+        fin_set(2, fin_effect);
       }
       if (serialinput[0] == 'v') {
         Serial.println("pos 3");
@@ -140,9 +145,8 @@ void mem_update(void) {
       }
       if (serialinput[0] == 'm') {
         Serial.println("pos 5");
-        fin_effect =3;
+        fin_effect = 3;
       }
-
     }
   }
 }

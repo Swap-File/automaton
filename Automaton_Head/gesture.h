@@ -38,5 +38,7 @@
 
 
 void gesture_check(struct cpu_struct *cpu_left,struct cpu_struct *cpu_right,struct cpu_struct * cpu_head);
+void gesture_start(struct cpu_struct *cpu_left, struct cpu_struct *cpu_right, struct cpu_struct *cpu_head);
+
 
 #endif
