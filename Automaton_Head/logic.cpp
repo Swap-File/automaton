@@ -193,29 +193,71 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
   // fin motion from hands
   static int last_location_left = -1;
   static int last_location_right = -1;
-  if (fin_motion_from_hands) {
-    if (ble_connection_count() > 0) {
+  static uint32_t hand_time = 0;
 
+#define FIN_COOLDOWN_HAND 300
+  if (fin_motion_from_hands) {
+    if (ble_connection_count() > 0) {  //fin_mode
 
       if (cpu_left->pitch > 127 + PITCH_GESTURE && last_location_left != FIN_DOWN) {
-        fin_set(FIN_DOWN, FIN_ALT);
+        if (fin_mode() == FIN_DOWN) {
+          if (millis() > hand_time + FIN_COOLDOWN_HAND)
+            fin_bump(1, -20);  // down
+        } else {
+          fin_set(FIN_DOWN, FIN_LEFT);
+          hand_time = millis();
+        }
         last_location_left = FIN_DOWN;
+
       } else if (cpu_left->pitch < 127 - PITCH_GESTURE && last_location_left != FIN_UP) {
-        fin_set(FIN_UP, FIN_ALT);
+        if (fin_mode() == FIN_UP) {
+          if (millis() > hand_time + FIN_COOLDOWN_HAND)
+            fin_bump(1, -20);  // down
+        } else {
+          fin_set(FIN_UP, FIN_LEFT);
+          hand_time = millis();
+        }
         last_location_left = FIN_UP;
       } else if (cpu_left->pitch > 127 - PITCH_GESTURE && cpu_left->pitch < 127 + PITCH_GESTURE && last_location_left != FIN_MID) {
-        fin_set(FIN_MID, FIN_ALT);
+        if (fin_mode() == FIN_MID) {
+          if (millis() > hand_time + FIN_COOLDOWN_HAND)
+            fin_bump(1, -20);  // down
+        } else {
+          fin_set(FIN_MID, FIN_LEFT);
+          hand_time = millis();
+        }
         last_location_left = FIN_MID;
       }
 
       if (cpu_right->pitch > 127 + PITCH_GESTURE && last_location_right != FIN_DOWN) {
-        fin_set(FIN_DOWN, FIN_ALT);
+        if (fin_mode() == FIN_DOWN) {
+          if (millis() > hand_time + FIN_COOLDOWN_HAND)
+            fin_bump(-1, -20);  //left down
+        } else {
+          fin_set(FIN_DOWN, FIN_RIGHT);
+          hand_time = millis();
+        }
+
         last_location_right = FIN_DOWN;
+
       } else if (cpu_right->pitch < 127 - PITCH_GESTURE && last_location_right != FIN_UP) {
-        fin_set(FIN_UP, FIN_ALT);
+        if (fin_mode() == FIN_UP) {
+          if (millis() > hand_time + FIN_COOLDOWN_HAND)
+            fin_bump(-1, 20);  //left down
+        } else {
+          fin_set(FIN_UP, FIN_RIGHT);
+          hand_time = millis();
+        }
         last_location_right = FIN_UP;
+
       } else if (cpu_right->pitch < 127 + PITCH_GESTURE && cpu_right->pitch > 127 - PITCH_GESTURE && last_location_right != FIN_MID) {
-        fin_set(FIN_MID, FIN_ALT);
+        if (fin_mode() == FIN_MID) {
+          if (millis() > hand_time + FIN_COOLDOWN_HAND)
+            fin_bump(-1, 20);  //left down
+        } else {
+          fin_set(FIN_MID, FIN_RIGHT);
+          hand_time = millis();
+        }
         last_location_right = FIN_MID;
       }
 

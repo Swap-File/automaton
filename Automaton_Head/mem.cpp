@@ -147,6 +147,14 @@ void mem_update(void) {
         Serial.println("pos 5");
         fin_effect = 3;
       }
+      if (serialinput[0] == ',') {
+        Serial.println("bump down");
+        fin_bump(1,20);
+      }
+      if (serialinput[0] == '.') {
+        Serial.println("bump down");
+          fin_bump(-1,20);
+      }
     }
   }
 }

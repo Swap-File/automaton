@@ -31,6 +31,7 @@ uint32_t fin_alt_up[15] = { 0, 200, 100, 300, 0, 200, 100, 300, 100, 200, 0, 300
 uint32_t fin_alt_down[15] = { 300, 100, 200, 0, 300, 100, 200, 0, 200, 100, 300, 0, 200, 100, 300 };
 
 static uint8_t fin_effect = FIN_IMMEDIATE;
+static uint8_t servo_mode_last = 255;
 
 void fin_set(int mode, int effect) {
   servo_mode = mode;
@@ -55,13 +56,32 @@ int fin_random(void) {
 }
 
 int fin_mode(void) {
-  return servo_mode;
+  return servo_mode_last;
+}
+
+#define FIN_BUMP_SPEED 50
+
+static int fin_bump_offset = 0;
+static int fin_bump_direction = 0;
+static int fin_bump_index = 0;
+static uint32_t fin_bump_time = 0;
+
+void fin_bump(int dir, int distance) {
+  fin_bump_direction = dir;
+  fin_bump_offset = 0;
+
+  if (dir > 0)
+    fin_bump_index = 0;
+  else
+    fin_bump_index = 14;
+
+  fin_bump_time = millis() + FIN_BUMP_SPEED;
 }
 
 
 static void map_servos(uint8_t servos[]) {
 
-  static uint8_t servo_mode_last = FIN_MID;
+
 
 
   if (servo_mode != FIN_HANDLED) {
@@ -183,20 +203,30 @@ static void map_servos(uint8_t servos[]) {
     servo_mode = FIN_HANDLED;
   }
 
-
+  //apply position / animation
   for (int i = 0; i < FIN_NUM; i++) {
     if (millis() > fin_execute_time[i]) {
-      if (fin_pos_target[i] == 255) {
-        fin_array[i].servo = mem_get_max(i);
-      } else if (fin_pos_target[i] == 0) {
-        fin_array[i].servo = mem_get_min(i);
-      } else {
-        fin_array[i].servo = constrain(map(fin_pos_target[i], 0, 255, mem_get_min(i), mem_get_max(i)), mem_get_min(i), mem_get_max(i));
-      }
+      fin_array[i].servo = constrain(map(fin_pos_target[i], 0, 255, mem_get_min(i), mem_get_max(i)), mem_get_min(i), mem_get_max(i));
     }
   }
 
+  if (fin_bump_direction != 0 && fin_bump_time < millis()) {
+    Serial.print(fin_bump_index);
+    Serial.println(" Bump");
+    fin_bump_index += fin_bump_direction;
+    fin_bump_time = millis() + FIN_BUMP_SPEED;
+    if (fin_bump_index > 14 || fin_bump_index < 0)
+      fin_bump_direction = 0;
+  }
 
+  //apply bump
+  if (fin_bump_direction != 0) {
+    fin_array[fin_bump_index].servo = constrain(map(fin_array[fin_bump_index].servo + fin_bump_offset, 0, 255, mem_get_min(fin_bump_index), mem_get_max(fin_bump_index)), mem_get_min(fin_bump_index), mem_get_max(fin_bump_index));
+  }
+
+
+
+  //output
   for (int i = 0; i < FIN_NUM; i++) {
     if (fin_array[i].servo != fin_array[i].servo_last) {
       fin_array[i].servo_last = fin_array[i].servo;
