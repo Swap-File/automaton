@@ -211,8 +211,8 @@ static void map_servos(uint8_t servos[]) {
   }
 
   if (fin_bump_direction != 0 && fin_bump_time < millis()) {
-    Serial.print(fin_bump_index);
-    Serial.println(" Bump");
+  //  Serial.print(fin_bump_index);
+   // Serial.println(" Bump");
     fin_bump_index += fin_bump_direction;
     fin_bump_time = millis() + FIN_BUMP_SPEED;
     if (fin_bump_index > 14 || fin_bump_index < 0)

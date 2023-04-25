@@ -45,12 +45,15 @@ void loop() {
   static int led_fps = 0;
   cpu_head.fps++;
 
+
+
   logic_update(&led_data, &cpu_left, &cpu_right, &cpu_head);
   
   if (metro_20hz.check()) {
    
     ble_notify(cpu_left.vibe, cpu_right.vibe);
     notify_fps++;
+
   }
 
   if (metro_100hz.check()) {

@@ -5,6 +5,7 @@
 #include "ble.h"
 #include "vibe.h"
 
+
 void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, struct cpu_struct *cpu_right, struct cpu_struct *cpu_head) {
 
   static bool fin_motion_from_hands = false;    //hand reaction movement
@@ -66,6 +67,8 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
     }
   }
 
+
+
   if (event) {
 
     gesture_start(cpu_left, cpu_right, cpu_head);
@@ -105,53 +108,51 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
   if (millis() < tap_time + 1000 && gesture_check_enabled) {
     gesture_check(cpu_left, cpu_right, cpu_head);
 
-    if (cpu_left->gesture_found || cpu_right->gesture_found || cpu_head->gesture_found) {
+    if (cpu_head->gesture_found == GESTURE_L) {
+      gesture_check_enabled = false;
+      led_data->audio_on = true;
+      fin_set(FIN_MID, FIN_LEFT);
+      fin_animation_start_time = millis();
+      fin_animation_effect = FIN_LEFT;
+      fin_animation = true;
+      cpu_left->vibe_request = 1;
+      cpu_right->vibe_request = 1;
+    } else if (cpu_head->gesture_found == GESTURE_R) {
+      gesture_check_enabled = false;
+      led_data->audio_on = false;
+      fin_set(FIN_MID, FIN_RIGHT);
+      fin_animation_start_time = millis();
+      fin_animation_effect = FIN_RIGHT;
+      fin_animation = true;
+      cpu_left->vibe_request = 1;
+      cpu_right->vibe_request = 1;
+    } else if (cpu_left->gesture_found == GESTURE_U || cpu_right->gesture_found == GESTURE_U) {
+      Serial.println("hand up");
 
 
-      if (cpu_left->gesture_found == GESTURE_L || cpu_right->gesture_found == GESTURE_L || cpu_head->gesture_found == GESTURE_L) {
-        gesture_check_enabled = false;
-        led_data->audio_on = true;
-        fin_set(FIN_MID, FIN_LEFT);
-        fin_animation_start_time = millis();
-        fin_animation_effect = FIN_LEFT;
-        fin_animation = true;
-        cpu_left->vibe_request = 1;
-        cpu_right->vibe_request = 1;
-      } else if (cpu_left->gesture_found == GESTURE_R || cpu_right->gesture_found == GESTURE_R || cpu_head->gesture_found == GESTURE_R) {
-        gesture_check_enabled = false;
-        led_data->audio_on = false;
-        fin_set(FIN_MID, FIN_RIGHT);
-        fin_animation_start_time = millis();
-        fin_animation_effect = FIN_RIGHT;
-        fin_animation = true;
-        cpu_left->vibe_request = 1;
-        cpu_right->vibe_request = 1;
-      } else if (cpu_left->gesture_found == GESTURE_U || cpu_right->gesture_found == GESTURE_U || cpu_head->gesture_found == GESTURE_U) {
-        Serial.println("hand up");
-        gesture_check_enabled = false;
+      gesture_check_enabled = false;
 
-        fin_motion_from_hands = true;
+      fin_motion_from_hands = true;
 
-        fin_set(FIN_MID, FIN_LEFT);
-        fin_animation_start_time = millis();
-        fin_animation_effect = FIN_LEFT;
-        fin_animation = true;
-        cpu_left->vibe_request = 1;
-        cpu_right->vibe_request = 1;
+      fin_set(FIN_MID, FIN_LEFT);
+      fin_animation_start_time = millis();
+      fin_animation_effect = FIN_LEFT;
+      fin_animation = true;
+      cpu_left->vibe_request = 1;
+      cpu_right->vibe_request = 1;
 
-      } else if (cpu_left->gesture_found == GESTURE_D || cpu_right->gesture_found == GESTURE_D || cpu_head->gesture_found == GESTURE_D) {
-        Serial.println("hand down");
-        gesture_check_enabled = false;
+    } else if (cpu_left->gesture_found == GESTURE_D || cpu_right->gesture_found == GESTURE_D) {
+      Serial.println("hand down");
+      gesture_check_enabled = false;
 
-        fin_motion_from_hands = false;
+      fin_motion_from_hands = false;
 
-        fin_set(FIN_MID, FIN_RIGHT);
-        fin_animation_start_time = millis();
-        fin_animation_effect = FIN_RIGHT;
-        fin_animation = true;
-        cpu_left->vibe_request = 1;
-        cpu_right->vibe_request = 1;
-      }
+      fin_set(FIN_MID, FIN_RIGHT);
+      fin_animation_start_time = millis();
+      fin_animation_effect = FIN_RIGHT;
+      fin_animation = true;
+      cpu_left->vibe_request = 1;
+      cpu_right->vibe_request = 1;
     }
   }
 
@@ -196,32 +197,55 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
   static uint32_t hand_time = 0;
 
 #define FIN_COOLDOWN_HAND 300
+#define SIDEWAYS 20  // 128  170
+
   if (fin_motion_from_hands) {
     if (ble_connection_count() > 0) {  //fin_mode
 
       if (cpu_left->pitch > 127 + PITCH_GESTURE && last_location_left != FIN_DOWN) {
-        if (fin_mode() == FIN_DOWN) {
-          if (millis() > hand_time + FIN_COOLDOWN_HAND)
-            fin_bump(1, -20);  // down
+
+
+        if (cpu_left->roll < 127 - SIDEWAYS) {
+
+
+          if (fin_mode() == FIN_DOWN) {
+            if (millis() > hand_time + FIN_COOLDOWN_HAND)
+              fin_bump(1, -20);  // down
+          } else {
+            fin_set(FIN_DOWN, FIN_LEFT);
+            hand_time = millis();
+          }
+
+
         } else {
-          fin_set(FIN_DOWN, FIN_LEFT);
-          hand_time = millis();
+
+
+          if (fin_mode() == FIN_UP) {
+            if (millis() > hand_time + FIN_COOLDOWN_HAND)
+              fin_bump(1, 20);  // down
+          } else {
+            fin_set(FIN_UP, FIN_LEFT);
+            hand_time = millis();
+          }
         }
+
         last_location_left = FIN_DOWN;
+
 
       } else if (cpu_left->pitch < 127 - PITCH_GESTURE && last_location_left != FIN_UP) {
         if (fin_mode() == FIN_UP) {
           if (millis() > hand_time + FIN_COOLDOWN_HAND)
-            fin_bump(1, -20);  // down
+            fin_bump(1, 20);  // down
         } else {
           fin_set(FIN_UP, FIN_LEFT);
           hand_time = millis();
         }
         last_location_left = FIN_UP;
+
       } else if (cpu_left->pitch > 127 - PITCH_GESTURE && cpu_left->pitch < 127 + PITCH_GESTURE && last_location_left != FIN_MID) {
         if (fin_mode() == FIN_MID) {
           if (millis() > hand_time + FIN_COOLDOWN_HAND)
-            fin_bump(1, -20);  // down
+            fin_bump(1, 20);  // down
         } else {
           fin_set(FIN_MID, FIN_LEFT);
           hand_time = millis();
@@ -230,13 +254,28 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
       }
 
       if (cpu_right->pitch > 127 + PITCH_GESTURE && last_location_right != FIN_DOWN) {
-        if (fin_mode() == FIN_DOWN) {
-          if (millis() > hand_time + FIN_COOLDOWN_HAND)
-            fin_bump(-1, -20);  //left down
+
+        if (cpu_right->roll > 127 + SIDEWAYS) {
+
+
+          if (fin_mode() == FIN_DOWN) {
+            if (millis() > hand_time + FIN_COOLDOWN_HAND)
+              fin_bump(-1, -20);  //left down
+          } else {
+            fin_set(FIN_DOWN, FIN_RIGHT);
+            hand_time = millis();
+          }
         } else {
-          fin_set(FIN_DOWN, FIN_RIGHT);
-          hand_time = millis();
+
+          if (fin_mode() == FIN_UP) {
+            if (millis() > hand_time + FIN_COOLDOWN_HAND)
+              fin_bump(-1, 20);  //left down
+          } else {
+            fin_set(FIN_UP, FIN_RIGHT);
+            hand_time = millis();
+          }
         }
+
 
         last_location_right = FIN_DOWN;
 
@@ -248,6 +287,7 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
           fin_set(FIN_UP, FIN_RIGHT);
           hand_time = millis();
         }
+
         last_location_right = FIN_UP;
 
       } else if (cpu_right->pitch < 127 + PITCH_GESTURE && cpu_right->pitch > 127 - PITCH_GESTURE && last_location_right != FIN_MID) {
@@ -258,6 +298,7 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
           fin_set(FIN_MID, FIN_RIGHT);
           hand_time = millis();
         }
+
         last_location_right = FIN_MID;
       }
 

@@ -91,10 +91,7 @@ void gesture_start(struct cpu_struct *cpu_left, struct cpu_struct *cpu_right, st
 }
 
 void gesture_check(struct cpu_struct *cpu_left, struct cpu_struct *cpu_right, struct cpu_struct *cpu_head) {
-
   check_for_gestures(cpu_left);
   check_for_gestures(cpu_right);
   check_for_gestures(cpu_head);
-
-
 }
