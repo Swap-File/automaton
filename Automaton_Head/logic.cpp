@@ -201,13 +201,8 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
 
   if (fin_motion_from_hands) {
     if (ble_connection_count() > 0) {  //fin_mode
-
-      if (cpu_left->pitch > 127 + PITCH_GESTURE && last_location_left != FIN_DOWN) {
-
-
-        if (cpu_left->roll < 127 - SIDEWAYS) {
-
-
+      if (cpu_left->pitch_smoothed > 127 + PITCH_GESTURE && last_location_left != FIN_DOWN) {
+        if (cpu_left->roll_smoothed < 127 - SIDEWAYS) {
           if (fin_mode() == FIN_DOWN) {
             if (millis() > hand_time + FIN_COOLDOWN_HAND)
               fin_bump(1, -20);  // down
@@ -215,11 +210,7 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
             fin_set(FIN_DOWN, FIN_LEFT);
             hand_time = millis();
           }
-
-
         } else {
-
-
           if (fin_mode() == FIN_UP) {
             if (millis() > hand_time + FIN_COOLDOWN_HAND)
               fin_bump(1, 20);  // down
@@ -232,7 +223,7 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
         last_location_left = FIN_DOWN;
 
 
-      } else if (cpu_left->pitch < 127 - PITCH_GESTURE && last_location_left != FIN_UP) {
+      } else if (cpu_left->pitch_smoothed < 127 - PITCH_GESTURE && last_location_left != FIN_UP) {
         if (fin_mode() == FIN_UP) {
           if (millis() > hand_time + FIN_COOLDOWN_HAND)
             fin_bump(1, 20);  // down
@@ -242,7 +233,7 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
         }
         last_location_left = FIN_UP;
 
-      } else if (cpu_left->pitch > 127 - PITCH_GESTURE && cpu_left->pitch < 127 + PITCH_GESTURE && last_location_left != FIN_MID) {
+      } else if (cpu_left->pitch_smoothed > 127 - PITCH_GESTURE && cpu_left->pitch_smoothed < 127 + PITCH_GESTURE && last_location_left != FIN_MID) {
         if (fin_mode() == FIN_MID) {
           if (millis() > hand_time + FIN_COOLDOWN_HAND)
             fin_bump(1, 20);  // down
@@ -253,9 +244,9 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
         last_location_left = FIN_MID;
       }
 
-      if (cpu_right->pitch > 127 + PITCH_GESTURE && last_location_right != FIN_DOWN) {
+      if (cpu_right->pitch_smoothed > 127 + PITCH_GESTURE && last_location_right != FIN_DOWN) {
 
-        if (cpu_right->roll > 127 + SIDEWAYS) {
+        if (cpu_right->roll_smoothed > 127 + SIDEWAYS) {
 
 
           if (fin_mode() == FIN_DOWN) {
@@ -279,7 +270,7 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
 
         last_location_right = FIN_DOWN;
 
-      } else if (cpu_right->pitch < 127 - PITCH_GESTURE && last_location_right != FIN_UP) {
+      } else if (cpu_right->pitch_smoothed < 127 - PITCH_GESTURE && last_location_right != FIN_UP) {
         if (fin_mode() == FIN_UP) {
           if (millis() > hand_time + FIN_COOLDOWN_HAND)
             fin_bump(-1, 20);  //left down
@@ -290,7 +281,7 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
 
         last_location_right = FIN_UP;
 
-      } else if (cpu_right->pitch < 127 + PITCH_GESTURE && cpu_right->pitch > 127 - PITCH_GESTURE && last_location_right != FIN_MID) {
+      } else if (cpu_right->pitch_smoothed < 127 + PITCH_GESTURE && cpu_right->pitch_smoothed > 127 - PITCH_GESTURE && last_location_right != FIN_MID) {
         if (fin_mode() == FIN_MID) {
           if (millis() > hand_time + FIN_COOLDOWN_HAND)
             fin_bump(-1, 20);  //left down

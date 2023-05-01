@@ -13,6 +13,7 @@
 
 #include <FastLED.h>
 struct led_struct led_data;
+#define SMOOTH 0.8
 
 Metro metro_1hz = Metro(1000);
 Metro metro_20hz = Metro(50);
@@ -45,28 +46,25 @@ void loop() {
   static int led_fps = 0;
   cpu_head.fps++;
 
-
-
   logic_update(&led_data, &cpu_left, &cpu_right, &cpu_head);
-  
+
   if (metro_20hz.check()) {
-   
     ble_notify(cpu_left.vibe, cpu_right.vibe);
     notify_fps++;
 
+    cpu_left.pitch_smoothed = cpu_left.pitch_smoothed * SMOOTH + cpu_left.pitch * (1 - SMOOTH);
+    cpu_left.roll_smoothed = cpu_left.roll_smoothed * SMOOTH + cpu_left.roll * (1 - SMOOTH);
+    cpu_right.pitch_smoothed = cpu_right.pitch_smoothed * SMOOTH + cpu_right.pitch * (1 - SMOOTH);
+    cpu_right.roll_smoothed = cpu_right.roll_smoothed * SMOOTH + cpu_right.roll * (1 - SMOOTH);
   }
 
   if (metro_100hz.check()) {
     imu_update(&cpu_head);  //4 to 9 ms
   }
 
-
   sound_update(&cpu_head);
 
-
   if (metro_50hz.check()) {
-  
-
     effects_update(&led_data, &cpu_left, &cpu_right, &cpu_head);
     leds_update(&led_data);
     fin_update(&led_data);

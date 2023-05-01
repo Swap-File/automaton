@@ -50,9 +50,11 @@ struct cpu_struct {
 
   float pitch_ref;
   uint8_t pitch;
+  float pitch_smoothed;
 
   float roll_ref;
   uint8_t roll;
+float roll_smoothed;
 
   uint8_t step_count;
 
