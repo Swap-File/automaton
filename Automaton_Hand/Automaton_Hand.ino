@@ -89,7 +89,10 @@ void loop() {
     hand_data.fps++;
 
     //read voltage measure 0.03 v low (experimentally)
-    double vBat = ((((float)analogRead(PIN_VBAT)) * 2.4) / 4096.0) * 1510.0 / 510.0; // Voltage divider from Vbat to ADC
+    double vBat;
+
+    vBat = ((((float)analogRead(PIN_VBAT)) * 2.4) / 4096.0) * 1510.0 / 510.0  * 1.027; // Voltage divider from Vbat to ADC
+
     battery_voltage = battery_voltage * 0.95 + 0.05 * vBat;
 
   }

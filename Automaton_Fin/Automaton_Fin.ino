@@ -1,7 +1,7 @@
 #define SERIAL_BUFFER_SIZE 256
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
-#include <Servo.h>
+#include <Servo2.h>
 #include <Metro.h>
 #include <FastCRC.h>
 #include <cobs.h>
@@ -51,8 +51,8 @@ void setup() {
   EEPROM.begin(16);
 
   fin_number = EEPROM.read(0);
-  
-  delay(fin_number * 100);
+
+  delay(fin_number * 150);
 
   Serial.begin(115200);   //usb debug
   Serial1.begin(460800);  //input bus
@@ -184,8 +184,22 @@ void loop() {
     }
   }
 
-  if (serial_connected)
+  static bool servo_enabled = true;
+
+  if (servo_enabled) {
+    if (fin_data.servo == 0 || fin_data.servo == 255 || serial_connected == false) {
+      myservo.disable();
+      servo_enabled = false;
+    }
+  }
+
+  if (serial_connected && fin_data.servo > 0 && fin_data.servo < 255) {
     myservo.write(fin_data.servo);
+    if (!servo_enabled) {
+      servo_enabled = true;
+      myservo.enable();
+    }
+  }
 
   //indicator LEDS
   if (serial_connected)
