@@ -27,7 +27,11 @@ static intr_handle_t gRMT_intr_handle = NULL;
 
 // -- Global semaphore for the whole show process
 //    Semaphore is not given until all data has been sent
+#if tskKERNEL_VERSION_MAJOR >= 7
+static SemaphoreHandle_t gTX_sem = NULL;
+#else 
 static xSemaphoreHandle gTX_sem = NULL;
+#endif
 
 // -- Make sure we can't call show() too quickly
 CMinWait<50>   gWait;
@@ -38,6 +42,21 @@ static bool gInitialized = false;
 int ESP32RMTController::gMaxChannel;
 int ESP32RMTController::gMemBlocks;
 
+#if ESP_IDF_VERSION_MAJOR >= 5
+
+// for gpio_matrix_out
+#include <rom/gpio.h>
+
+// copied from rmt_private.h with slight changes to match the idf 4.x syntax
+typedef struct {
+    struct {
+        rmt_item32_t data32[SOC_RMT_MEM_WORDS_PER_CHANNEL];
+    } chan[SOC_RMT_CHANNELS_PER_GROUP];
+} rmt_block_mem_t;
+
+// RMTMEM address is declared in <target>.peripherals.ld
+extern rmt_block_mem_t RMTMEM;
+#endif
 
 ESP32RMTController::ESP32RMTController(int DATA_PIN, int T1, int T2, int T3, int maxChannel, int memBlocks)
     : mPixelData(0), 
@@ -158,6 +177,7 @@ void ESP32RMTController::init(gpio_num_t pin)
     }
 
     gInitialized = true;
+    (void)espErr;
 }
 
 // -- Show this string of pixels
@@ -279,6 +299,7 @@ void IRAM_ATTR ESP32RMTController::startOnChannel(int channel)
         // -- Kick off the transmission
         tx_start();
     }
+    (void)espErr;
 }
 
 // -- Start RMT transmission
@@ -341,8 +362,10 @@ void IRAM_ATTR ESP32RMTController::doneOnChannel(rmt_channel_t channel, void * a
     ESP32RMTController * pController = gOnChannel[channel];
 
     // -- Turn off output on the pin
-    // SZG: Do I really need to do this?
-    gpio_matrix_out(pController->mPin, 0x100, 0, 0);
+    //    Otherwise the pin will stay connected to the RMT controller,
+    //    and if the same RMT controller is used for another output
+    //    pin the RMT output will be routed to both pins.
+    gpio_matrix_out(pController->mPin, SIG_GPIO_OUT_IDX, 0, 0);
 
     // -- Turn off the interrupts
     // rmt_set_tx_intr_en(channel, false);
@@ -486,22 +509,22 @@ void IRAM_ATTR ESP32RMTController::fillNext(bool check_time)
     mLastFill = now;
 
     // -- Get the zero and one values into local variables
-    register uint32_t one_val = mOne.val;
-    register uint32_t zero_val = mZero.val;
+    FASTLED_REGISTER uint32_t one_val = mOne.val;
+    FASTLED_REGISTER uint32_t zero_val = mZero.val;
 
     // -- Use locals for speed
-    volatile register uint32_t * pItem =  mRMT_mem_ptr;
+    volatile FASTLED_REGISTER uint32_t * pItem =  mRMT_mem_ptr;
 
-    for (register int i = 0; i < PULSES_PER_FILL/8; i++) {
+    for (FASTLED_REGISTER int i = 0; i < PULSES_PER_FILL/8; i++) {
         if (mCur < mSize) {
 
             // -- Get the next four bytes of pixel data
-            register uint32_t pixeldata = mPixelData[mCur] << 24;
+            FASTLED_REGISTER uint32_t pixeldata = mPixelData[mCur] << 24;
             mCur++;
             
             // Shift bits out, MSB first, setting RMTMEM.chan[n].data32[x] to the 
             // rmt_item32_t value corresponding to the buffered bit value
-            for (register uint32_t j = 0; j < 8; j++) {
+            for (FASTLED_REGISTER uint32_t j = 0; j < 8; j++) {
                 *pItem++ = (pixeldata & 0x80000000L) ? one_val : zero_val;
                 // Replaces: RMTMEM.chan[mRMT_channel].data32[mCurPulse].val = val;
 
@@ -545,7 +568,7 @@ void ESP32RMTController::convertByte(uint32_t byteval)
 {
     // -- Write one byte's worth of RMT pulses to the big buffer
     byteval <<= 24;
-    for (register uint32_t j = 0; j < 8; j++) {
+    for (FASTLED_REGISTER uint32_t j = 0; j < 8; j++) {
         mBuffer[mCurPulse] = (byteval & 0x80000000L) ? mOne : mZero;
         byteval <<= 1;
         mCurPulse++;
