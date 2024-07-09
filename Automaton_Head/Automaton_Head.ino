@@ -72,7 +72,7 @@ void loop() {
   }
 
   //STATS
-  if (metro_1hz.check()) {
+  if (metro_1hz.check()) {  // normal is: 12800-130000,  20 , 20 , 20
     Serial.print(cpu_head.fps);
     Serial.print(" ");
     Serial.print(led_fps);

@@ -6,9 +6,13 @@ volatile bool pdm_processed = true;
 
 #define PDM_SAMPLES 1600  //20hz at 16,000 sample rate
 
-arduinoFFT FFT = arduinoFFT();
+const double samplingFrequency = PDM_SAMPLES * 100;
+
 double fft_vReal[FFT_SAMPLES * 2];
 double fft_vImag[FFT_SAMPLES * 2];
+
+
+ArduinoFFT<double> FFT = ArduinoFFT<double>(fft_vReal, fft_vImag, FFT_SAMPLES * 2, samplingFrequency);
 
 static void onPDMdata(void) {
 
@@ -32,9 +36,9 @@ bool sound_update(struct cpu_struct *hand_data) {  //this takes ~1.5ms
 
   if (pdm_processed == false) {
 
-    FFT.Windowing(fft_vReal, FFT_SAMPLES* 2, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-    FFT.Compute(fft_vReal, fft_vImag, FFT_SAMPLES* 2, FFT_FORWARD);
-    FFT.ComplexToMagnitude(fft_vReal, fft_vImag, FFT_SAMPLES* 2);
+    FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward);	
+    FFT.compute(FFTDirection::Forward);
+    FFT.complexToMagnitude();
 
 
     static int fft_slow_avg_min[FFT_SAMPLES ] = { 0 };

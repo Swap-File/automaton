@@ -1,5 +1,5 @@
 /* FastCRC library code is placed under the MIT license
- * Copyright (c) 2014,2015 Frank Bösing
+ * Copyright (c) 2014 - 2021 Frank Bösing
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -29,9 +29,22 @@
 
 #if !defined(FastCRC_tables)
 #define FastCRC_tables
-#include "inttypes.h"
+#include <inttypes.h>
 
-
+#if !defined(__SAM3X8E__)
+#if defined(__AVR__ ) || defined(__IMXRT1062__) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_UNOR4_MINIMA) || defined(ARDUINO_UNOR4_WIFI) || defined(ARDUINO_NANO_RP2040_CONNECT)
+#include <avr/pgmspace.h>
+#else
+#if defined(ARDUINO) || defined(ARDUINO_ARCH_ESP32)
+//#include <pgmspace.h>	
+#endif
+#endif
+#endif
+#ifndef PROGMEM
+// usefull if you're trying to test the lib in a non arduino env (in cppyy on x64 for exemple)
+#define PROGMEM
+#define PROGMEM_MOCK_ACTIVE
+#endif
 const uint8_t crc_table_crc7[256] PROGMEM = {
 	0x00, 0x12, 0x24, 0x36, 0x48, 0x5a, 0x6c, 0x7e,
 	0x90, 0x82, 0xb4, 0xa6, 0xd8, 0xca, 0xfc, 0xee,
@@ -1574,4 +1587,10 @@ const uint32_t crc_table_cksum_big[1024] PROGMEM = {
 	0x105ee293, 0xa7c48f4f, 0xc976f82f, 0x7eec95f3,
 	0x151217ef, 0xa2887a33, 0xcc3a0d53, 0x7ba0608f
 };
+
+#ifdef PROGMEM_MOCK_ACTIVE
+// limit the effect of the progmem mock to this file
+#undef PROGMEM
+#undef PROGMEM_MOCK_ACTIVE
+#endif
 #endif
