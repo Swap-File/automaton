@@ -13,7 +13,8 @@
 
 #include <FastLED.h>
 struct led_struct led_data;
-#define SMOOTH 0.8
+#define SMOOTH_ROLL 0.8
+#define SMOOTH_PITCH 0.2
 
 Metro metro_1hz = Metro(1000);
 Metro metro_20hz = Metro(50);
@@ -52,11 +53,30 @@ void loop() {
     ble_notify(cpu_left.vibe, cpu_right.vibe);
     notify_fps++;
 
-    cpu_left.pitch_smoothed = cpu_left.pitch_smoothed * SMOOTH + cpu_left.pitch * (1 - SMOOTH);
-    cpu_left.roll_smoothed = cpu_left.roll_smoothed * SMOOTH + cpu_left.roll * (1 - SMOOTH);
-    cpu_right.pitch_smoothed = cpu_right.pitch_smoothed * SMOOTH + cpu_right.pitch * (1 - SMOOTH);
-    cpu_right.roll_smoothed = cpu_right.roll_smoothed * SMOOTH + cpu_right.roll * (1 - SMOOTH);
+    cpu_left.pitch_smoothed = cpu_left.pitch_smoothed * SMOOTH_PITCH + cpu_left.pitch * (1 - SMOOTH_PITCH);
+    cpu_left.roll_smoothed = cpu_left.roll_smoothed * SMOOTH_ROLL + cpu_left.roll * (1 - SMOOTH_ROLL);
+    cpu_right.pitch_smoothed = cpu_right.pitch_smoothed * SMOOTH_PITCH + cpu_right.pitch * (1 - SMOOTH_PITCH);
+    cpu_right.roll_smoothed = cpu_right.roll_smoothed * SMOOTH_ROLL + cpu_right.roll * (1 - SMOOTH_ROLL);
+
+
+    led_data.left_roll = map(cpu_left.roll_smoothed, 64, 192, 8 * 127, -8 * 127);    //vibe at edges and middle?  add deadzone
+    led_data.right_roll = map(cpu_right.roll_smoothed, 64, 192, -8 * 127, 8 * 127);  //vibe at edges and middle?  add deadzone
+
+
+    led_data.left_pitch = ((cpu_left.pitch_smoothed - cpu_left.pitch) * 10);
+    led_data.right_pitch = ((cpu_right.pitch_smoothed - cpu_right.pitch) * 10);
+
+    led_data.left_pitch = 4* ( 127 -( cpu_left.pitch) );  
+    led_data.right_pitch = 4* ( 127- (cpu_right.pitch) );
+
+
+    Serial.print(led_data.left_pitch);
+    Serial.print('\t');
+    Serial.print(led_data.right_pitch);
+    Serial.print('\t');
+    Serial.println('\t');
   }
+
 
   if (metro_100hz.check()) {
     imu_update(&cpu_head);  //4 to 9 ms

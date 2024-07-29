@@ -24,8 +24,11 @@ struct led_struct {
 
   bool audio_on = true;
 
- 
- 
+  int fin_effect = 0;
+  int left_roll = 0;
+  int right_roll = 0;
+  int left_pitch = 0;
+  int right_pitch = 0;
 };
 
 #define FFT_SAMPLES 8
@@ -54,14 +57,14 @@ struct cpu_struct {
 
   float roll_ref;
   uint8_t roll;
-float roll_smoothed;
+  float roll_smoothed;
 
   uint8_t step_count;
 
   uint8_t tap_event;
   uint8_t tap_event_counter;
   uint8_t tap_event_counter_previous;
-  
+
   uint32_t msg_time;
   uint8_t msg_count;
 

@@ -20,6 +20,8 @@ void fin_set(int mode);
 int fin_random(void);
 int fin_mode(void);
 void fin_bump(int dir, int distance);
+void fin_smooth_left(int dir);
+void fin_smooth_right(int dir);
 
 // fin positions
 #define FIN_MODE_FIRST 0

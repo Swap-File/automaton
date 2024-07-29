@@ -149,11 +149,36 @@ void mem_update(void) {
       }
       if (serialinput[0] == ',') {
         Serial.println("bump down");
-        fin_bump(1,20);
+        fin_bump(1, 20);
       }
       if (serialinput[0] == '.') {
         Serial.println("bump down");
-          fin_bump(-1,20);
+        fin_bump(-1, 20);
+      }
+      //new
+      if (serialinput[0] == 'a') {
+        Serial.println("hand roll -1");
+        fin_smooth_left(-1);
+      }
+      if (serialinput[0] == 's') {
+        Serial.println("hand roll 0");
+        fin_smooth_left(0);
+      }
+      if (serialinput[0] == 'd') {
+        Serial.println("hand roll 1");
+        fin_smooth_left(1);
+      }
+      if (serialinput[0] == 'f') {
+        Serial.println("hand roll -1");
+        fin_smooth_right(-1);
+      }
+      if (serialinput[0] == 'g') {
+        Serial.println("hand roll 0");
+        fin_smooth_right(0);
+      }
+      if (serialinput[0] == 'h') {
+        Serial.println("hand roll 1");
+        fin_smooth_right(1);
       }
     }
   }

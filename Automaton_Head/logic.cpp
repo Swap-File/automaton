@@ -83,16 +83,24 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
     }
 
     if (event == 2) {  //turn on, without sound
+      fin_animation = true;
+      if (led_data->off == false) {
+        led_data->fin_effect++;
+        if (led_data->fin_effect > 1)
+          led_data->fin_effect = 0;
+
+        if (led_data->fin_effect == 1)
+          fin_animation = false;
+      }
       led_data->off = false;
       fin_set(FIN_MID, FIN_ALT);
       fin_animation_start_time = millis();
       fin_animation_effect = FIN_ALT;
-      fin_animation = true;
-
       fin_motion_from_walking = false;
       led_data->audio_on = false;
     }
     if (event == 3) {  //turn off
+      led_data->fin_effect = 0;
       fin_set(FIN_DOWN, FIN_ALT);
       fin_motion_from_walking = false;
       led_data->off = true;

@@ -6,7 +6,7 @@
 #include "common.h"
 static FastCRC8 CRC8;
 
-#define SERVO_ON_TIME 250
+#define SERVO_ON_TIME 1000
 static struct fin_struct fin_array[FIN_NUM];
 
 #define FIN_HANDLED 255
@@ -78,11 +78,48 @@ void fin_bump(int dir, int distance) {
   fin_bump_time = millis() + FIN_BUMP_SPEED;
 }
 
+int test_left = 0;
+int test_left_counter = 0;
 
-static void map_servos(uint8_t servos[]) {
+void fin_smooth_left(int dir) {
+  test_left = dir;
+}
+
+int test_right = 0;
+int test_right_counter = 0;
+
+void fin_smooth_right(int dir) {
+  test_right = dir;
+}
 
 
+void set_the_fin(int i, int val) {
+  fin_array[i].servo = constrain(map(val, 0, 255, mem_get_min(i), mem_get_max(i)), mem_get_min(i), mem_get_max(i));
+}
 
+void idle_fins() {
+
+  //output
+  for (int i = 0; i < FIN_NUM; i++) {
+    if (fin_array[i].servo != fin_array[i].servo_last) {
+      fin_array[i].servo_last = fin_array[i].servo;
+      fin_array[i].servo_time = millis() + SERVO_ON_TIME;
+    }
+    if (millis() > fin_array[i].servo_time && millis() > SERVO_ON_TIME * 4)
+      fin_array[i].servo_sent = 0;
+    else
+      fin_array[i].servo_sent = fin_array[i].servo;
+  }
+}
+
+static bool check_if_animation_done(void) {
+  for (int i = 0; i < FIN_NUM; i++) {
+    if (fin_execute_time[i] > millis()) return false;
+  }
+  return true;
+}
+
+static void map_servos_animation(uint8_t servos[]) {
 
   if (servo_mode != FIN_HANDLED) {
 
@@ -206,13 +243,11 @@ static void map_servos(uint8_t servos[]) {
   //apply position / animation
   for (int i = 0; i < FIN_NUM; i++) {
     if (millis() > fin_execute_time[i]) {
-      fin_array[i].servo = constrain(map(fin_pos_target[i], 0, 255, mem_get_min(i), mem_get_max(i)), mem_get_min(i), mem_get_max(i));
+      set_the_fin(i, fin_pos_target[i]);  //check later
     }
   }
 
   if (fin_bump_direction != 0 && fin_bump_time < millis()) {
-  //  Serial.print(fin_bump_index);
-   // Serial.println(" Bump");
     fin_bump_index += fin_bump_direction;
     fin_bump_time = millis() + FIN_BUMP_SPEED;
     if (fin_bump_index > 14 || fin_bump_index < 0)
@@ -221,23 +256,12 @@ static void map_servos(uint8_t servos[]) {
 
   //apply bump
   if (fin_bump_direction != 0) {
-    fin_array[fin_bump_index].servo = constrain(map(fin_array[fin_bump_index].servo + fin_bump_offset, 0, 255, mem_get_min(fin_bump_index), mem_get_max(fin_bump_index)), mem_get_min(fin_bump_index), mem_get_max(fin_bump_index));
+    set_the_fin(fin_bump_index, fin_array[fin_bump_index].servo + fin_bump_offset);  //check later
   }
 
-
-
-  //output
-  for (int i = 0; i < FIN_NUM; i++) {
-    if (fin_array[i].servo != fin_array[i].servo_last) {
-      fin_array[i].servo_last = fin_array[i].servo;
-      fin_array[i].servo_time = millis() + SERVO_ON_TIME;
-    }
-    if (millis() > fin_array[i].servo_time && millis() > SERVO_ON_TIME * 4)
-      fin_array[i].servo_sent = 0;
-    else
-      fin_array[i].servo_sent = fin_array[i].servo;
-  }
+  idle_fins();
 }
+
 
 static void map_x_leds(const CRGB* x_leds) {
   int idx = 0;
@@ -280,9 +304,124 @@ void clear_leds(void) {
   }
 }
 
+#define NUM_FRONT_FINS 8
+#define NUM_BACK_FINS 7
+
+void map_servos_smooth(int left_roll, int right_roll, int z, int w) {
+
+  //center all the servos
+  int front_fins[NUM_FRONT_FINS] = { 127, 127, 127, 127, 127, 127, 127, 127 };
+  int back_fins[NUM_BACK_FINS] = { 255, 255, 255, 255, 255, 255, 255 };
+
+  int slope = -64;
+  int fins_allowed = 4;  //set high
+
+  int max_roll = -1 * slope * (fins_allowed + 1);
+
+
+
+  //calculate left hand servo pull
+  if (left_roll >= 0) {
+    left_roll = min(left_roll, max_roll);
+    for (int i = 0; i < NUM_FRONT_FINS; i++) {
+      int offset = max(slope * i + left_roll, 0);
+      front_fins[i] -= max(offset, 0);
+    }
+
+  } else {
+    left_roll *= -1;
+    left_roll = min(left_roll, max_roll);
+    for (int i = 0; i < NUM_FRONT_FINS; i++) {
+      int offset = max(slope * i + left_roll, 0);
+      front_fins[i] += min(offset, 255);
+    }
+  }
+
+  //calculate right hand servo pull
+  if (right_roll >= 0) {
+    right_roll = min(right_roll, max_roll);
+    for (int i = 0; i < NUM_FRONT_FINS; i++) {
+      int offset = max(slope * i + right_roll, 0);
+      front_fins[NUM_FRONT_FINS - i] -= max(offset, 0);
+    }
+
+  } else {
+    right_roll *= -1;
+    right_roll = min(right_roll, max_roll);
+    for (int i = 0; i < NUM_FRONT_FINS; i++) {
+      int offset = max(slope * i + right_roll, 0);
+      front_fins[NUM_FRONT_FINS - i] += min(offset, 255);
+    }
+  }
+
+
+
+  int front_fins_untouched[NUM_FRONT_FINS];
+  int front_fins_exaggerated[NUM_FRONT_FINS];
+
+  for (int i = 0; i < 4; i++) {
+    front_fins_untouched[i] = front_fins[i];
+    front_fins[i] = constrain(constrain(front_fins[i], 0, 255) + w / 2, 0, 255);  //give half the motion to front fins
+    front_fins_exaggerated[i] = constrain(constrain(front_fins[i], 0, 255) + w, 0, 255);
+  }
+  for (int i = 4; i < 8; i++) {
+    front_fins_untouched[i] = front_fins[i];
+    front_fins[i] = constrain(constrain(front_fins[i], 0, 255) + z / 2, 0, 255);
+    front_fins_exaggerated[i] = constrain(constrain(front_fins[i], 0, 255) + w, 0, 255);
+  }
+
+
+
+
+  //set the front fins
+  int fin_counter = 0;
+  for (int i = 0; i < (NUM_FRONT_FINS + NUM_BACK_FINS); i++) {
+    if (i % 2 == 0) {
+      front_fins[fin_counter] = constrain(front_fins[fin_counter], 0, 255);
+      set_the_fin(i, front_fins[fin_counter++]);
+    }
+  }
+
+
+
+
+  int back_fins_limit[NUM_BACK_FINS];
+  fin_counter = 0;
+  //process back fins here
+  for (int i = 0; i < NUM_BACK_FINS; i++) {
+
+    back_fins_limit[i] = max(front_fins[fin_counter], front_fins[fin_counter + 1]);
+    back_fins_limit[i] = 255 - (2 * (255 - back_fins_limit[i]));  //back fin limit could be 2x, 3x, or squared
+
+    back_fins[i] = max(front_fins_exaggerated[fin_counter], front_fins_exaggerated[fin_counter + 1]);
+    back_fins[i] = min(back_fins[i], back_fins_limit[i]);
+
+    fin_counter++;
+  }
+
+  //set back fins here
+  fin_counter = 0;
+  for (int i = 0; i < (NUM_FRONT_FINS + NUM_BACK_FINS); i++) {
+    if (i % 2 == 1) {
+      back_fins[fin_counter] = constrain(back_fins[fin_counter], 0, 255);
+      set_the_fin(i, back_fins[fin_counter++]);
+    }
+  }
+}
+
+
 void fin_update(struct led_struct* led_data) {
 
-  map_servos(led_data->servos);
+  static bool transition = true;
+
+  if (led_data->fin_effect == 0 || (check_if_animation_done() == false)) {
+    map_servos_animation(led_data->servos);
+
+  } else if (led_data->fin_effect == 1) {
+    map_servos_smooth(led_data->left_roll, led_data->right_roll, led_data->right_pitch, led_data->left_pitch);
+  }
+
+  idle_fins();
 
   clear_leds();
 
