@@ -29,6 +29,8 @@ struct led_struct {
   int right_roll = 0;
   int left_pitch = 0;
   int right_pitch = 0;
+
+ bool fin_stuff_done = true;
 };
 
 #define FFT_SAMPLES 8

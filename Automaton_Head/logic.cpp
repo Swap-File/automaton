@@ -84,13 +84,16 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
 
     if (event == 2) {  //turn on, without sound
       fin_animation = true;
+
+      led_data->fin_stuff_done = false;
+
       if (led_data->off == false) {
         led_data->fin_effect++;
         if (led_data->fin_effect > 1)
           led_data->fin_effect = 0;
 
-        if (led_data->fin_effect == 1)
-          fin_animation = false;
+        //if (led_data->fin_effect == 1)
+        //  fin_animation = false;
       }
       led_data->off = false;
       fin_set(FIN_MID, FIN_ALT);
@@ -100,12 +103,14 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
       led_data->audio_on = false;
     }
     if (event == 3) {  //turn off
+      led_data->fin_stuff_done = false;
       led_data->fin_effect = 0;
       fin_set(FIN_DOWN, FIN_ALT);
       fin_motion_from_walking = false;
       led_data->off = true;
     }
-    if (event == 4) {  //walking auto mde
+    if (event == 4) {  //walking auto mde (junk)
+      led_data->fin_stuff_done = false;
       Serial.println(" enable auto mode");
       fin_set(FIN_MID, FIN_ALT);
       fin_motion_from_walking = true;
@@ -194,11 +199,22 @@ void logic_update(struct led_struct *led_data, struct cpu_struct *cpu_left, stru
     }
   }
 
+  static uint32_t anima_Tim = 0;
+
+  if (fin_animation == false && millis() > anima_Tim) {
+
+    led_data->fin_stuff_done = true;
+  }
+
   //fin animation (delayed)
   if (fin_animation && millis() > fin_animation_start_time + 1000) {
     fin_animation = false;
     fin_set(FIN_UP, fin_animation_effect);
+    anima_Tim = millis() + 500;
   }
+
+
+
   // fin motion from hands
   static int last_location_left = -1;
   static int last_location_right = -1;

@@ -33,6 +33,7 @@ uint32_t fin_alt_down[15] = { 300, 100, 200, 0, 300, 100, 200, 0, 200, 100, 300,
 static uint8_t fin_effect = FIN_IMMEDIATE;
 static uint8_t servo_mode_last = 255;
 
+
 void fin_set(int mode, int effect) {
   servo_mode = mode;
   fin_effect = effect;
@@ -112,12 +113,6 @@ void idle_fins() {
   }
 }
 
-static bool check_if_animation_done(void) {
-  for (int i = 0; i < FIN_NUM; i++) {
-    if (fin_execute_time[i] > millis()) return false;
-  }
-  return true;
-}
 
 static void map_servos_animation(uint8_t servos[]) {
 
@@ -412,12 +407,10 @@ void map_servos_smooth(int left_roll, int right_roll, int z, int w) {
 
 void fin_update(struct led_struct* led_data) {
 
-  static bool transition = true;
-
-  if (led_data->fin_effect == 0 || (check_if_animation_done() == false)) {
+  if (led_data->fin_effect == 0 || led_data->fin_stuff_done == false ) {
     map_servos_animation(led_data->servos);
 
-  } else if (led_data->fin_effect == 1) {
+  } else if (led_data->fin_stuff_done && led_data->fin_effect == 1) {
     map_servos_smooth(led_data->left_roll, led_data->right_roll, led_data->right_pitch, led_data->left_pitch);
   }
 
